@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Order History</h2>
+    <a href="/" class="btn btn-outline-secondary">Back to Dashboard</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Date</th>
+                    <th>Customer Details</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>{{ order.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <strong>{{ order.customer_name }}</strong><br>
+                        <small>{{ order.phone }}</small><br>
+                        <small class="text-muted">{{ order.address }}</small>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                        {% for item in order.items %}
+                            <li>• {{ item.product_name }} (x{{ item.quantity }})</li>
+                        {% endfor %}
+                        </ul>
+                    </td>
+                    <td><strong>Rs. {{ order.total_amount }}</strong></td>
+                    
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form action="/update_status/{{ order.id }}" method="POST">
+                                <select name="status" class="form-select form-select-sm" 
+                                        style="width: 120px; font-weight: bold; 
+                                        color: {{ 'green' if order.status == 'Delivered' else ('blue' if order.status == 'Shipped' else 'black') }}"
+                                        onchange="this.form.submit()"> <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending ⏳</option>
+                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped 🚚</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered ✅</option>
+                                    <option value="Returned" {% if order.status == 'Returned' %}selected{% endif %}>Returned ↩️</option>
+                                </select>
+                            </form>
+
+                            <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning">✏️</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

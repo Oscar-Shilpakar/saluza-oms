@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 600px;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Edit Product: {{ p.name }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                
+                <div class="text-center mb-3">
+                    {% if p.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="100" class="rounded border">
+                    <p class="small text-muted mt-1">Current Image</p>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Change Image (Optional)</label>
+                    <input type="file" name="image" class="form-control">
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">SKU (Optional)</label>
+                        <input type="text" name="sku" class="form-control" value="{{ p.sku if p.sku else '' }}">
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Size</label>
+                        <input type="text" name="size" class="form-control" value="{{ p.size }}" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Product Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ p.name }}" required>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label class="form-label">Cost Price</label>
+                        <input type="number" name="cost_price" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Selling Price</label>
+                        <input type="number" name="price" class="form-control" step="0.01" value="{{ p.price }}" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Stock Quantity</label>
+                    <input type="number" name="stock" class="form-control" value="{{ p.stock }}" required>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                    <a href="/inventory" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

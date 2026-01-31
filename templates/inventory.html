@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Add New Product</h5>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-2">
+                    <label class="form-label">Product Image</label>
+                    <input type="file" name="image" class="form-control">
+                </div>
+                
+                <div class="mb-2">
+                    <input type="text" name="sku" class="form-control" placeholder="SKU (Optional)">
+                </div>
+
+                <div class="mb-2"><input type="text" name="name" class="form-control" placeholder="Product Name" required></div>
+                <div class="mb-2"><input type="text" name="size" class="form-control" placeholder="Size" required></div>
+                
+                <div class="row mb-2">
+                    <div class="col">
+                        <label class="text-muted small">Cost Price</label>
+                        <input type="number" name="cost_price" class="form-control" placeholder="Cost" step="0.01" required>
+                    </div>
+                    <div class="col">
+                        <label class="text-muted small">Selling Price</label>
+                        <input type="number" name="price" class="form-control" placeholder="Price" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="mb-2"><input type="number" name="stock" class="form-control" placeholder="Initial Stock" required></div>
+                <button type="submit" class="btn btn-primary w-100">Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <table class="table table-bordered bg-white align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Img</th>
+                    <th>SKU / Name</th>
+                    <th>Cost</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td>
+                        {% if p.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="50" height="50" style="object-fit: cover; border-radius: 5px;">
+                        {% else %}
+                        <span class="text-muted small">No Img</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ p.sku if p.sku else '—' }}</strong><br>
+                        {{ p.name }} ({{ p.size }})
+                    </td>
+                    <td>Rs. {{ p.cost_price }}</td>
+                    <td>Rs. {{ p.price }}</td>
+                    <td class="{{ 'text-danger fw-bold' if p.stock < 5 else '' }}">{{ p.stock }}</td>
+                    <td>
+                        <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

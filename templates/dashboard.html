@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-dark bg-success mb-3 h-100">
+            <div class="card-header">Total Revenue</div>
+            <div class="card-body">
+                <h2 class="card-title">Rs. {{ sales }}</h2>
+                <small>Gross Sales</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-dark bg-danger mb-3 h-100">
+            <div class="card-header">Total Expenses</div>
+            <div class="card-body">
+                <h2 class="card-title">Rs. {{ expenses }}</h2>
+                <small>Bills + Product Costs (COGS)</small> <div class="mt-2">
+                    <a href="/expenses" class="text-white text-decoration-underline small">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-dark bg-warning mb-3 h-100">
+            <div class="card-header">Net Profit</div>
+            <div class="card-body">
+                <h2 class="card-title">Rs. {{ net_profit }}</h2>
+                <small>Gross Profit - Expenses</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-danger h-100">
+            <div class="card-header bg-transparent text-danger fw-bold">Low Stock</div>
+            <ul class="list-group list-group-flush list-group-sm">
+                {% for item in low_stock %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ item.name }}</span>
+                    <span class="badge bg-danger rounded-pill">{{ item.stock }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Recent Orders</h3>
+    <div>
+        <a href="/export_excel" class="btn btn-success me-2">📥 Export P&L</a>
+        <a href="/orders" class="btn btn-primary">View All Orders</a>
+    </div>
+</div>
+
+<table class="table table-striped bg-white align-middle">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Amount</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>#{{ order.id }}</td>
+            <td><strong>{{ order.customer_name }}</strong></td>
+            <td>Rs. {{ order.total_amount }}</td>
+            <td><span class="badge bg-secondary">{{ order.status }}</span></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

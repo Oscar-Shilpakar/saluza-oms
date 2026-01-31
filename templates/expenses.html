@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 mb-3 shadow-sm">
+            <h4 class="mb-3">Add Other Expense</h4>
+            <p class="text-muted small">Use this for Rent, Ads, Packaging, etc. (Not Products)</p>
+            <form method="POST">
+                <label class="form-label">Description</label>
+                <input type="text" name="description" class="form-control mb-2" placeholder="e.g. Shop Rent" required>
+                
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select mb-2">
+                    <option value="Marketing">Marketing / Ads</option>
+                    <option value="Packaging">Packaging</option>
+                    <option value="Delivery">Delivery Fees</option>
+                    <option value="Rent">Rent / Utilities</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <label class="form-label">Amount (Rs)</label>
+                <input type="number" name="amount" step="0.01" class="form-control mb-3" placeholder="0.00" required>
+                
+                <button type="submit" class="btn btn-primary w-100">Add Expense</button>
+            </form>
+        </div>
+        <a href="/" class="btn btn-outline-secondary w-100">Back to Dashboard</a>
+    </div>
+
+    <div class="col-md-8">
+        
+        <div class="card text-white bg-dark mb-3">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">📦 Total Product Investment</h5>
+                    <small style="color: #ccc;">Cost of ALL Stock (Sold + Unsold)</small>
+                </div>
+                <h3 class="mb-0">Rs. {{ product_expense }}</h3>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-light border-bottom">
+                <h5 class="mb-0">Other Expenses History</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in expenses %}
+                        <tr>
+                            <td>{{ exp.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ exp.description }}</td>
+                            <td><span class="badge bg-secondary">{{ exp.category }}</span></td>
+                            <td class="fw-bold">Rs. {{ exp.amount }}</td>
+                            <td>
+                                <a href="/delete_expense/{{ exp.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this expense?')">×</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No other expenses added yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
