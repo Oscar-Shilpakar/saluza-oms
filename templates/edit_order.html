@@ -137,7 +137,7 @@
 
         if (!name || cart.length === 0) return alert("Cart cannot be empty.");
 
-        const response = await fetch('/update_order_data', {
+        const response = await fetch('/update_order_', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -415,6 +415,20 @@ def update_order_data():
     
     return jsonify({'message': 'Order Updated'})
 
+@app.route('/delete_product/<int:id>')
+def delete_product(id):
+    product = Product.query.get_or_404(id)
+    
+    # SAFETY CHECK: Only delete if product has never been sold
+    existing_sales = OrderItem.query.filter_by(product_id=id).first()
+    
+    if existing_sales:
+        return "Cannot delete this product because it has been sold in previous orders. Deleting it would break your Sales History."
+    
+    db.session.delete(product)
+    db.session.commit()
+    return redirect(url_for('inventory'))
+
 with app.app_context():
     db.create_all()
 

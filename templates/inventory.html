@@ -64,7 +64,15 @@
                     <td>Rs. {{ p.price }}</td>
                     <td class="{{ 'text-danger fw-bold' if p.stock < 5 else '' }}">{{ p.stock }}</td>
                     <td>
-                        <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <div class="d-flex gap-2">
+                            <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            
+                            <a href="/delete_product/{{ p.id }}" 
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Are you sure? This cannot be undone.')">
+                                🗑️
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
