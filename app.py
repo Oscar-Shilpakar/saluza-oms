@@ -429,6 +429,25 @@ def delete_product(id):
     db.session.commit()
     return redirect(url_for('inventory'))
 
+@app.route('/delete_order/<int:id>')
+def delete_order(id):
+    order = Order.query.get_or_404(id)
+    
+    # 1. Restore the Stock (Put items back in inventory)
+    for item in order.items:
+        product = Product.query.get(item.product_id)
+        if product:
+            product.stock += item.quantity
+            
+    # 2. Delete the Items first (to keep database clean)
+    OrderItem.query.filter_by(order_id=id).delete()
+    
+    # 3. Delete the Order
+    db.session.delete(order)
+    db.session.commit()
+    
+    return redirect(url_for('order_history'))
+
 with app.app_context():
     db.create_all()
 

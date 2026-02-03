@@ -38,19 +38,27 @@
                     <td><strong>Rs. {{ order.total_amount }}</strong></td>
                     
                     <td>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
                             <form action="/update_status/{{ order.id }}" method="POST">
                                 <select name="status" class="form-select form-select-sm" 
-                                        style="width: 120px; font-weight: bold; 
+                                        style="width: 110px; font-weight: bold; 
                                         color: {{ 'green' if order.status == 'Delivered' else ('blue' if order.status == 'Shipped' else 'black') }}"
-                                        onchange="this.form.submit()"> <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending ⏳</option>
-                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped 🚚</option>
-                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered ✅</option>
-                                    <option value="Returned" {% if order.status == 'Returned' %}selected{% endif %}>Returned ↩️</option>
+                                        onchange="this.form.submit()">
+                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Returned" {% if order.status == 'Returned' %}selected{% endif %}>Returned</option>
                                 </select>
                             </form>
 
-                            <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning">✏️</a>
+                            <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning" title="Edit Order">✏️</a>
+
+                            <a href="/delete_order/{{ order.id }}" 
+                               class="btn btn-sm btn-outline-danger" 
+                               onclick="return confirm('Are you sure? This will delete the order and RESTORE the stock.')"
+                               title="Delete Order">
+                                🗑️
+                            </a>
                         </div>
                     </td>
                 </tr>
