@@ -56,52 +56,67 @@ class Expense(db.Model):
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Investment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    note = db.Column(db.String(200)) # e.g., "Initial Capital" or "Dad's loan"
+
 # --- ROUTES ---
 
 # --- UPDATED DASHBOARD ROUTE ---
 @app.route('/')
 def dashboard():
-    # 1. Total Revenue (Money In)
+    # --- 1. MONEY IN ---
+    # Total money you put into the business
+    total_investment = db.session.query(db.func.sum(Investment.amount)).scalar() or 0
+    
+    # Total money from customers (Revenue)
     total_sales = db.session.query(db.func.sum(Order.total_amount)).scalar() or 0
     
-    # 2. Manual Expenses (Rent, Ads, etc.)
+    # --- 2. MONEY OUT ---
+    # Money spent on "Expenses" (Rent, Ads, etc.)
     manual_expenses = db.session.query(db.func.sum(Expense.amount)).scalar() or 0
     
-    # 3. Product Expenses (The User's Request: ALL products, sold or unsold)
-    # Part A: Cost of items currently in stock
-    inventory_value = 0
+    # Money spent on PRODUCTS (This is the tricky part!)
+    # We calculate: (Cost of items currently on shelf) + (Cost of items already sold)
+    
+    # A. Cost of Unsold Items (Current Inventory)
+    current_inventory_cost = 0
     products = Product.query.all()
     for p in products:
-        inventory_value += (p.stock * p.cost_price)
+        current_inventory_cost += (p.stock * p.cost_price)
         
-    # Part B: Cost of items already sold
-    sold_cost = 0
-    order_items = OrderItem.query.all()
-    for item in order_items:
-        # Fetch the product to get its cost price
-        product = Product.query.get(item.product_id)
-        if product:
-            sold_cost += (item.quantity * product.cost_price)
-            
-    # Total "Product Expense" (Money spent on clothes)
-    total_product_expense = inventory_value + sold_cost
+    # B. Cost of Sold Items (COGS)
+    # Gross Profit = Sales - COGS  -->  So, COGS = Sales - Gross Profit
+    gross_profit = db.session.query(db.func.sum(Order.profit)).scalar() or 0
+    cost_of_sold_goods = total_sales - gross_profit
     
-    # 4. Total Business Expenses
-    total_expenses = manual_expenses + total_product_expense
-    
-    # 5. Net Profit (Cash Flow)
-    net_profit = total_sales - total_expenses
+    # Total Product Spending
+    total_product_spend = current_inventory_cost + cost_of_sold_goods
 
-    # (Queries for display)
+    # --- 3. FINAL CALCULATIONS ---
+    # Cash in Hand: (All Money In) - (All Money Out)
+    cash_in_hand = (total_investment + total_sales) - (total_product_spend + manual_expenses)
+
+    # For display
+    net_profit = gross_profit # As you requested previously (Sales Profit only)
+    
+    # Queries for lists
     recent_orders = Order.query.order_by(Order.date.desc()).limit(5).all()
     low_stock = Product.query.filter(Product.stock < 2, Product.stock > 0).all()
     out_of_stock = Product.query.filter(Product.stock == 0).all()
+    investments = Investment.query.order_by(Investment.date.desc()).all()
     
     return render_template('dashboard.html', 
                            sales=total_sales, 
-                           expenses=total_expenses, # Includes ALL stock costs
+                           gross_profit=gross_profit, 
+                           expenses=manual_expenses, 
                            net_profit=net_profit, 
-                           orders=recent_orders, 
+                           cash_in_hand=cash_in_hand, # <--- NEW DATA
+                           total_investment=total_investment, # <--- NEW DATA
+                           orders=recent_orders,
+                           investments=investments, 
                            low_stock=low_stock,
                            out_of_stock=out_of_stock)
 
@@ -448,6 +463,40 @@ def delete_order(id):
     
     return redirect(url_for('order_history'))
 
+@app.route('/add_investment', methods=['POST'])
+def add_investment():
+    amount = float(request.form.get('amount'))
+    note = request.form.get('note')
+    
+    new_invest = Investment(amount=amount, note=note)
+    db.session.add(new_invest)
+    db.session.commit()
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_investment/<int:id>', methods=['GET', 'POST'])
+def edit_investment(id):
+    invest = Investment.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        invest.amount = float(request.form.get('amount'))
+        invest.note = request.form.get('note')
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+        
+    return render_template('edit_investment.html', investment=invest)
+
+@app.route('/delete_investment/<int:id>')
+def delete_investment(id):
+    invest = Investment.query.get_or_404(id)
+    db.session.delete(invest)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+with app.app_context():
+    db.create_all()
+
+# Create tables if they don't exist
 with app.app_context():
     db.create_all()
 

@@ -1,5 +1,39 @@
 {% extends "layout.html" %}
 {% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#investmentHistoryModal">
+    💰 Manage Capital
+</button>
+    </div>
+</div>
+
+<div class="modal fade" id="investmentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Capital/Investment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/add_investment" method="POST">
+          <div class="modal-body">
+            <div class="mb-3">
+                <label>Amount (Rs)</label>
+                <input type="number" step="0.01" name="amount" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label>Note (Source)</label>
+                <input type="text" name="note" class="form-control" placeholder="e.g. My Savings, Loan, etc.">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save Investment</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card text-dark bg-success mb-3 h-100">
@@ -25,10 +59,20 @@
 
     <div class="col-md-3">
         <div class="card text-dark bg-warning mb-3 h-100">
-            <div class="card-header">Net Profit</div>
+            <div class="card-header">Total Profit</div>
             <div class="card-body">
                 <h2 class="card-title">Rs. {{ net_profit }}</h2>
-                <small>Gross Profit - Expenses</small>
+                <small>Profit from Sales Only</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-dark bg-primary mb-3 h-100">
+            <div class="card-header">Cash in Hand</div>
+            <div class="card-body">
+                <h2 class="card-title">Rs. {{ cash_in_hand }}</h2>
+                <small>Invested: Rs. {{ total_investment }}</small>
             </div>
         </div>
     </div>
@@ -56,6 +100,8 @@
     </div>
 </div>
 
+
+
 <table class="table table-striped bg-white align-middle">
     <thead>
         <tr>
@@ -76,4 +122,57 @@
         {% endfor %}
     </tbody>
 </table>
+
+<div class="modal fade" id="investmentHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"> <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Capital & Investment Manager</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="card mb-4 bg-light border-0">
+            <div class="card-body">
+                <h6>➕ Add New Capital</h6>
+                <form action="/add_investment" method="POST" class="d-flex gap-2">
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount (Rs)" required>
+                    <input type="text" name="note" class="form-control" placeholder="Source (e.g. Loan, Savings)">
+                    <button type="submit" class="btn btn-success">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <h6>📜 Investment History</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Note</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in investments %}
+                    <tr>
+                        <td>{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ inv.note }}</td>
+                        <td class="fw-bold text-success">Rs. {{ inv.amount }}</td>
+                        <td>
+                            <a href="/edit_investment/{{ inv.id }}" class="btn btn-sm btn-outline-primary">✏️</a>
+                            <a href="/delete_investment/{{ inv.id }}" 
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Delete this record? This will reduce your Cash in Hand.')">🗑️</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
