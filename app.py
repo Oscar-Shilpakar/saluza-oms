@@ -47,6 +47,9 @@ class OrderItem(db.Model):
     discount = db.Column(db.Float, default=0.0)
     subtotal = db.Column(db.Float, nullable=False)
     product_name = db.Column(db.String(100))
+    # Lets templates access item.product.image, item.product.sku, etc.
+    # Product may be None if it was ever deleted, so templates must check for that.
+    product = db.relationship('Product')
 
 # --- NEW: EXPENSE MODEL ---
 class Expense(db.Model):
@@ -107,7 +110,71 @@ def dashboard():
     low_stock = Product.query.filter(Product.stock < 2, Product.stock > 0).all()
     out_of_stock = Product.query.filter(Product.stock == 0).all()
     investments = Investment.query.order_by(Investment.date.desc()).all()
-    
+
+    # --- 4. BUSINESS INSIGHTS ---
+    total_orders_count = Order.query.count()
+    avg_order_value = (total_sales / total_orders_count) if total_orders_count else 0
+    profit_margin_pct = (gross_profit / total_sales * 100) if total_sales else 0
+    total_customers = db.session.query(db.func.count(db.distinct(Order.customer_name))).scalar() or 0
+
+    # Order status breakdown (how many orders are sitting in each stage)
+    status_rows = db.session.query(Order.status, db.func.count(Order.id)).group_by(Order.status).all()
+    status_counts = {s: c for s, c in status_rows}
+    order_status_breakdown = [
+        {'label': 'Pending', 'count': status_counts.get('Pending', 0), 'color': 'var(--text-secondary)'},
+        {'label': 'Shipped', 'count': status_counts.get('Shipped', 0), 'color': 'var(--accent)'},
+        {'label': 'Delivered', 'count': status_counts.get('Delivered', 0), 'color': 'var(--success)'},
+        {'label': 'Returned', 'count': status_counts.get('Returned', 0), 'color': 'var(--danger)'},
+    ]
+    max_status_count = max([s['count'] for s in order_status_breakdown], default=0) or 1
+    for s in order_status_breakdown:
+        s['pct'] = round((s['count'] / max_status_count) * 100, 1)
+
+    # Best-selling products by quantity sold
+    best_seller_rows = db.session.query(
+            OrderItem.product_id,
+            OrderItem.product_name,
+            db.func.sum(OrderItem.quantity).label('total_qty'),
+            db.func.sum(OrderItem.subtotal).label('total_revenue')
+        ).group_by(OrderItem.product_id, OrderItem.product_name) \
+         .order_by(db.func.sum(OrderItem.quantity).desc()) \
+         .limit(5).all()
+
+    best_sellers = []
+    for row in best_seller_rows:
+        product = Product.query.get(row.product_id)
+        best_sellers.append({
+            'name': row.product_name,
+            'qty': row.total_qty,
+            'revenue': row.total_revenue,
+            'image': product.image if product else None
+        })
+
+    # Top customers by total lifetime spend
+    top_customer_rows = db.session.query(
+            Order.customer_name,
+            db.func.sum(Order.total_amount).label('total_spent'),
+            db.func.count(Order.id).label('order_count')
+        ).group_by(Order.customer_name) \
+         .order_by(db.func.sum(Order.total_amount).desc()) \
+         .limit(5).all()
+    top_customers = [{'name': r.customer_name, 'spent': r.total_spent, 'orders': r.order_count} for r in top_customer_rows]
+
+    # Monthly revenue trend (last 6 months with any sales)
+    monthly_rows = db.session.query(
+            db.func.strftime('%Y-%m', Order.date).label('month'),
+            db.func.sum(Order.total_amount).label('revenue'),
+            db.func.sum(Order.profit).label('profit')
+        ).group_by('month').order_by('month').all()
+    monthly_rows = monthly_rows[-6:]
+    max_month_revenue = max([m.revenue for m in monthly_rows], default=0) or 1
+    monthly_revenue = [{
+        'month': datetime.strptime(m.month, '%Y-%m').strftime('%b %Y'),
+        'revenue': m.revenue,
+        'profit': m.profit,
+        'pct': round((m.revenue / max_month_revenue) * 100, 1)
+    } for m in monthly_rows]
+
     return render_template('dashboard.html', 
                            sales=total_sales, 
                            gross_profit=gross_profit, 
@@ -118,7 +185,15 @@ def dashboard():
                            orders=recent_orders,
                            investments=investments, 
                            low_stock=low_stock,
-                           out_of_stock=out_of_stock)
+                           out_of_stock=out_of_stock,
+                           total_orders_count=total_orders_count,
+                           avg_order_value=avg_order_value,
+                           profit_margin_pct=profit_margin_pct,
+                           total_customers=total_customers,
+                           order_status_breakdown=order_status_breakdown,
+                           best_sellers=best_sellers,
+                           top_customers=top_customers,
+                           monthly_revenue=monthly_revenue)
 
 # --- UPDATED EXPENSES ROUTE ---
 @app.route('/expenses', methods=['GET', 'POST'])

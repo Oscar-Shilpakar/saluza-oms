@@ -2,8 +2,8 @@
 {% block content %}
 <div class="row h-100">
     <div class="col-md-5">
-        <div class="card shadow-sm h-100 border-warning">
-            <div class="card-header bg-warning text-dark">
+        <div class="card shadow-sm h-100">
+            <div class="card-header" style="background: var(--warning-tint); color: var(--warning); font-weight: 600;">
                 <h5 class="mb-0">Editing Order #{{ order.id }}</h5>
             </div>
             <div class="card-body d-flex flex-column">
@@ -14,6 +14,7 @@
                             <tr>
                                 <th>Item</th>
                                 <th style="width: 60px;">Qty</th>
+                                <th style="width: 70px;">Disc.</th>
                                 <th>Subtotal</th>
                                 <th></th>
                             </tr>
@@ -27,7 +28,7 @@
                     <h3 class="text-primary">Rs. <span id="grandTotal">0</span></h3>
                 </div>
 
-                <div class="bg-light p-3 rounded">
+                <div class="p-3" style="background: var(--surface-muted); border-radius: var(--radius-md);">
                     <input type="text" id="custName" class="form-control form-control-sm mb-2" value="{{ order.customer_name }}">
                     <input type="text" id="custPhone" class="form-control form-control-sm mb-2" value="{{ order.phone }}">
                     <textarea id="custAddress" class="form-control form-control-sm mb-2" rows="2">{{ order.address }}</textarea>
@@ -79,8 +80,9 @@
             cart.push({
                 id: {{ item.product_id }},
                 name: "{{ item.product_name }}", 
-                price: {{ item.subtotal / item.quantity }},
+                price: {{ (item.subtotal + item.discount) / item.quantity }},
                 qty: {{ item.quantity }},
+                discount: {{ item.discount or 0 }},
                 maxStock: 999 // In edit mode, we relax the stock check slightly for UX
             });
         {% endfor %}
@@ -97,7 +99,7 @@
     function addToCart(id, name, size, price, maxStock) {
         const existingItem = cart.find(i => i.id === id);
         if (existingItem) { existingItem.qty++; } 
-        else { cart.push({ id, name, size, price, qty: 1, maxStock }); }
+        else { cart.push({ id, name, size, price, qty: 1, maxStock, discount: 0 }); }
         renderCart();
     }
 
@@ -106,12 +108,13 @@
         tbody.innerHTML = '';
         let total = 0;
         cart.forEach((item, index) => {
-            const sub = item.price * item.qty;
+            const sub = (item.price * item.qty) - (item.discount || 0);
             total += sub;
             tbody.innerHTML += `
                 <tr>
                     <td><div class="fw-bold">${item.name}</div></td>
                     <td><input type="number" class="form-control form-control-sm px-1 text-center" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)"></td>
+                    <td><input type="number" class="form-control form-control-sm px-1 text-center text-danger" value="${item.discount || 0}" min="0" onchange="updateDisc(${index}, this.value)"></td>
                     <td>Rs. ${sub}</td>
                     <td><button class="btn btn-sm text-danger" onclick="remItem(${index})">×</button></td>
                 </tr>`;
@@ -121,6 +124,13 @@
 
     function updateQty(index, newQty) {
         cart[index].qty = parseInt(newQty) < 1 ? 1 : parseInt(newQty);
+        renderCart();
+    }
+
+    function updateDisc(index, newDisc) {
+        let v = parseFloat(newDisc);
+        if (isNaN(v) || v < 0) v = 0;
+        cart[index].discount = v;
         renderCart();
     }
 
@@ -137,7 +147,7 @@
 
         if (!name || cart.length === 0) return alert("Cart cannot be empty.");
 
-        const response = await fetch('/update_order_', {
+        const response = await fetch('/update_order_data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -145,13 +155,15 @@
                 customer_name: name,
                 phone: phone,
                 address: address,
-                items: cart.map(i => ({ product_id: i.id, quantity: i.qty }))
+                items: cart.map(i => ({ product_id: i.id, quantity: i.qty, discount: i.discount || 0 }))
             })
         });
 
         if (response.ok) {
             alert("Order Updated Successfully!");
             window.location.href = '/orders';
+        } else {
+            alert("Failed to update order. Please try again.");
         }
     }
 </script>

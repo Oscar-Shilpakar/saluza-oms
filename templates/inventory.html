@@ -35,49 +35,53 @@
     </div>
 
     <div class="col-md-8">
-        <table class="table table-bordered bg-white align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Img</th>
-                    <th>SKU / Name</th>
-                    <th>Cost</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in products %}
-                <tr>
-                    <td>
-                        {% if p.image %}
-                        <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="50" height="50" style="object-fit: cover; border-radius: 5px;">
-                        {% else %}
-                        <span class="text-muted small">No Img</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <strong>{{ p.sku if p.sku else '—' }}</strong><br>
-                        {{ p.name }} ({{ p.size }})
-                    </td>
-                    <td>Rs. {{ p.cost_price }}</td>
-                    <td>Rs. {{ p.price }}</td>
-                    <td class="{{ 'text-danger fw-bold' if p.stock < 5 else '' }}">{{ p.stock }}</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            
-                            <a href="/delete_product/{{ p.id }}" 
-                               class="btn btn-sm btn-outline-danger"
-                               onclick="return confirm('Are you sure? This cannot be undone.')">
-                                🗑️
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Img</th>
+                            <th>SKU / Name</th>
+                            <th>Cost</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td>
+                                {% if p.image %}
+                                <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="44" height="44" style="object-fit: cover; border-radius: 8px;">
+                                {% else %}
+                                <span class="text-muted small">No Img</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ p.sku if p.sku else '—' }}</strong><br>
+                                {{ p.name }} ({{ p.size }})
+                            </td>
+                            <td>Rs. {{ p.cost_price }}</td>
+                            <td>Rs. {{ p.price }}</td>
+                            <td class="{{ 'fw-bold' if p.stock < 5 else '' }}" style="{{ 'color: var(--danger);' if p.stock < 5 else '' }}">{{ p.stock }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary">Edit</a>
+
+                                    <a href="/delete_product/{{ p.id }}" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Are you sure? This cannot be undone.')">
+                                        🗑️
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

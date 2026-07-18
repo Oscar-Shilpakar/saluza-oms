@@ -29,13 +29,16 @@
 
     <div class="col-md-8">
         
-        <div class="card text-white bg-dark mb-3">
+        <div class="card mb-3">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0">📦 Total Product Investment</h5>
-                    <small style="color: #ccc;">Cost of ALL Stock (Sold + Unsold)</small>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--text); display: inline-block;"></span>
+                        <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Total Product Investment</span>
+                    </div>
+                    <small>Cost of ALL Stock (Sold + Unsold)</small>
                 </div>
-                <h3 class="mb-0">Rs. {{ product_expense }}</h3>
+                <h3 class="mb-0" style="font-weight: 700;">Rs. {{ product_expense }}</h3>
             </div>
         </div>
 

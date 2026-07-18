@@ -2,8 +2,8 @@
 {% block content %}
 <div class="container mt-4" style="max-width: 600px;">
     <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Edit Product: {{ p.name }}</h4>
+        <div class="card-header" style="color: var(--accent); font-weight: 600;">
+            <h4 class="mb-0" style="font-size: 1.1rem;">Edit Product: {{ p.name }}</h4>
         </div>
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">

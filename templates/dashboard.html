@@ -1,91 +1,311 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Dashboard</h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-4 mb-4"
+    style="border-bottom: 1px solid var(--hairline);">
+    <div>
+        <h1 class="h3 mb-1">Dashboard</h1>
+        <p class="mb-0" style="color: var(--text-secondary); font-size: 0.92rem;">A snapshot of your business, today.
+        </p>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#investmentHistoryModal">
-    💰 Manage Capital
-</button>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+            data-bs-target="#investmentHistoryModal">
+            💰 Manage Capital
+        </button>
     </div>
 </div>
 
 <div class="modal fade" id="investmentModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add Capital/Investment</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form action="/add_investment" method="POST">
-          <div class="modal-body">
-            <div class="mb-3">
-                <label>Amount (Rs)</label>
-                <input type="number" step="0.01" name="amount" class="form-control" required>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Capital/Investment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="mb-3">
-                <label>Note (Source)</label>
-                <input type="text" name="note" class="form-control" placeholder="e.g. My Savings, Loan, etc.">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Save Investment</button>
-          </div>
-      </form>
+            <form action="/add_investment" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label>Amount (Rs)</label>
+                        <input type="number" step="0.01" name="amount" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Note (Source)</label>
+                        <input type="text" name="note" class="form-control" placeholder="e.g. My Savings, Loan, etc.">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Investment</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
 </div>
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-dark bg-success mb-3 h-100">
-            <div class="card-header">Total Revenue</div>
+<div class="row mb-4 g-3">
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
             <div class="card-body">
-                <h2 class="card-title">Rs. {{ sales }}</h2>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Total
+                        Revenue</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ sales }}</h2>
                 <small>Gross Sales</small>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card text-dark bg-danger mb-3 h-100">
-            <div class="card-header">Total Expenses</div>
+
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
             <div class="card-body">
-                <h2 class="card-title">Rs. {{ expenses }}</h2>
-                <small>Bills + Product Costs (COGS)</small> <div class="mt-2">
-                    <a href="/expenses" class="text-white text-decoration-underline small">View Details</a>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--danger); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Total
+                        Expenses</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ expenses }}</h2>
+                <small>Bills + Product Costs (COGS)</small>
+                <div class="mt-2">
+                    <a href="/expenses" class="small text-decoration-none">View Details →</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-dark bg-warning mb-3 h-100">
-            <div class="card-header">Total Profit</div>
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
             <div class="card-body">
-                <h2 class="card-title">Rs. {{ net_profit }}</h2>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Total
+                        Profit</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ net_profit }}</h2>
                 <small>Profit from Sales Only</small>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-dark bg-primary mb-3 h-100">
-            <div class="card-header">Cash in Hand</div>
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
             <div class="card-body">
-                <h2 class="card-title">Rs. {{ cash_in_hand }}</h2>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Cash
+                        in Hand</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ cash_in_hand }}</h2>
                 <small>Invested: Rs. {{ total_investment }}</small>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card border-danger h-100">
-            <div class="card-header bg-transparent text-danger fw-bold">Low Stock</div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="color: var(--warning);">Low Stock</div>
             <ul class="list-group list-group-flush list-group-sm">
                 {% for item in low_stock %}
-                <li class="list-group-item d-flex justify-content-between">
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="border-color: var(--hairline);">
                     <span>{{ item.name }}</span>
-                    <span class="badge bg-danger rounded-pill">{{ item.stock }}</span>
+                    <span class="badge" style="background: var(--warning-tint); color: var(--warning);">{{ item.stock }}
+                        left</span>
                 </li>
+                {% else %}
+                <li class="list-group-item text-center"
+                    style="color: var(--text-secondary); border-color: var(--hairline);">All products well stocked.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="color: var(--danger);">Out of Stock</div>
+            <ul class="list-group list-group-flush list-group-sm">
+                {% for item in out_of_stock %}
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="border-color: var(--hairline);">
+                    <span>{{ item.name }}</span>
+                    <span class="badge bg-danger rounded-pill">0</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-center"
+                    style="color: var(--text-secondary); border-color: var(--hairline);">Nothing out of stock.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+    <h3 class="h5 mb-0">Business Insights</h3>
+</div>
+
+<div class="row mb-4 g-3">
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Total
+                        Orders</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ total_orders_count }}</h2>
+                <small>All-time orders placed</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Avg.
+                        Order Value</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ "%.0f"|format(avg_order_value) }}
+                </h2>
+                <small>Revenue per order</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Profit
+                        Margin</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ "%.1f"|format(profit_margin_pct) }}%
+                </h2>
+                <small>Of gross revenue</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span
+                        style="width: 8px; height: 8px; border-radius: 50%; background: var(--text); display: inline-block;"></span>
+                    <span
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Customers</span>
+                </div>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ total_customers }}</h2>
+                <small>Unique buyers to date</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">Revenue Trend</div>
+            <div class="card-body">
+                {% if monthly_revenue %}
+                <div class="d-flex align-items-end gap-3" style="height: 160px;">
+                    {% for m in monthly_revenue %}
+                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100">
+                        <span class="small mb-1" style="color: var(--text-secondary); font-size: 0.7rem;">Rs. {{
+                            "%.0f"|format(m.revenue) }}</span>
+                        <div
+                            style="width: 100%; max-width: 40px; height: {{ m.pct if m.pct > 3 else 3 }}%; background: var(--accent); border-radius: 6px 6px 0 0; transition: height 0.6s var(--ease);">
+                        </div>
+                        <span class="small mt-2" style="color: var(--text-secondary); font-size: 0.72rem;">{{ m.month
+                            }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center mb-0 py-4" style="color: var(--text-secondary);">Not enough order history yet to
+                    show a trend.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">Order Status Breakdown</div>
+            <div class="card-body">
+                {% for s in order_status_breakdown %}
+                <div class="mb-3 {{ '' if loop.last else '' }}">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-bold">{{ s.label }}</span>
+                        <span class="small" style="color: var(--text-secondary);">{{ s.count }}</span>
+                    </div>
+                    <div
+                        style="background: var(--surface-muted); border-radius: var(--radius-pill); height: 8px; overflow: hidden;">
+                        <div
+                            style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; border-radius: var(--radius-pill); transition: width 0.6s var(--ease);">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Best Sellers</div>
+            <ul class="list-group list-group-flush list-group-sm">
+                {% for item in best_sellers %}
+                <li class="list-group-item d-flex align-items-center gap-2" style="border-color: var(--hairline);">
+                    <span class="small" style="color: var(--text-secondary); width: 18px;">{{ loop.index }}</span>
+                    {% if item.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + item.image) }}"
+                        style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">
+                    {% else %}
+                    <span
+                        style="width: 32px; height: 32px; background: var(--surface-muted); border-radius: 6px; flex-shrink: 0;"
+                        class="d-flex align-items-center justify-content-center text-muted" title="No image">🛒</span>
+                    {% endif %}
+                    <span class="flex-grow-1">{{ item.name }}</span>
+                    <span class="small fw-bold">{{ item.qty }} sold</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-center"
+                    style="color: var(--text-secondary); border-color: var(--hairline);">No sales yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Top Customers</div>
+            <ul class="list-group list-group-flush list-group-sm">
+                {% for c in top_customers %}
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="border-color: var(--hairline);">
+                    <div>
+                        <span class="d-block">{{ c.name }}</span>
+                        <small>{{ c.orders }} order{{ 's' if c.orders != 1 else '' }}</small>
+                    </div>
+                    <span class="fw-bold">Rs. {{ "%.0f"|format(c.spent) }}</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-center"
+                    style="color: var(--text-secondary); border-color: var(--hairline);">No customers yet.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -93,86 +313,110 @@
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Recent Orders</h3>
+    <h3 class="h5 mb-0">Recent Orders</h3>
     <div>
-        <a href="/export_excel" class="btn btn-success me-2">📥 Export P&L</a>
-        <a href="/orders" class="btn btn-primary">View All Orders</a>
+        <a href="/export_excel" class="btn btn-sm btn-success me-2">📥 Export P&L</a>
+        <a href="/orders" class="btn btn-sm btn-primary">View All Orders</a>
     </div>
 </div>
 
-
-
-<table class="table table-striped bg-white align-middle">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Customer</th>
-            <th>Amount</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in orders %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td><strong>{{ order.customer_name }}</strong></td>
-            <td>Rs. {{ order.total_amount }}</td>
-            <td><span class="badge bg-secondary">{{ order.status }}</span></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td><strong>{{ order.customer_name }}</strong></td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for item in order.items %}
+                            <li class="d-flex align-items-center gap-2 mb-1">
+                                {% if item.product and item.product.image %}
+                                <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}"
+                                    style="width: 28px; height: 28px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">
+                                {% else %}
+                                <span
+                                    style="width: 28px; height: 28px; background: var(--surface-muted); border-radius: 6px; flex-shrink: 0;"
+                                    class="d-flex align-items-center justify-content-center text-muted"
+                                    title="No image">🛒</span>
+                                {% endif %}
+                                <span>{{ item.product_name }} (x{{ item.quantity }})</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>Rs. {{ order.total_amount }}</td>
+                    <td><span class="badge bg-secondary">{{ order.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <div class="modal fade" id="investmentHistoryModal" tabindex="-1">
-  <div class="modal-dialog modal-lg"> <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Capital & Investment Manager</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        
-        <div class="card mb-4 bg-light border-0">
-            <div class="card-body">
-                <h6>➕ Add New Capital</h6>
-                <form action="/add_investment" method="POST" class="d-flex gap-2">
-                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount (Rs)" required>
-                    <input type="text" name="note" class="form-control" placeholder="Source (e.g. Loan, Savings)">
-                    <button type="submit" class="btn btn-success">Add</button>
-                </form>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Capital & Investment Manager</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <div class="card mb-4 border-0" style="background: var(--surface-muted);">
+                    <div class="card-body">
+                        <h6>➕ Add New Capital</h6>
+                        <form action="/add_investment" method="POST" class="d-flex gap-2">
+                            <input type="number" step="0.01" name="amount" class="form-control"
+                                placeholder="Amount (Rs)" required>
+                            <input type="text" name="note" class="form-control"
+                                placeholder="Source (e.g. Loan, Savings)">
+                            <button type="submit" class="btn btn-success">Add</button>
+                        </form>
+                    </div>
+                </div>
+
+                <h6>📜 Investment History</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Note</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inv in investments %}
+                            <tr>
+                                <td>{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ inv.note }}</td>
+                                <td class="fw-bold text-success">Rs. {{ inv.amount }}</td>
+                                <td>
+                                    <a href="/edit_investment/{{ inv.id }}"
+                                        class="btn btn-sm btn-outline-primary">✏️</a>
+                                    <a href="/delete_investment/{{ inv.id }}" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Delete this record? This will reduce your Cash in Hand.')">🗑️</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </div>
-
-        <h6>📜 Investment History</h6>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Note</th>
-                        <th>Amount</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for inv in investments %}
-                    <tr>
-                        <td>{{ inv.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ inv.note }}</td>
-                        <td class="fw-bold text-success">Rs. {{ inv.amount }}</td>
-                        <td>
-                            <a href="/edit_investment/{{ inv.id }}" class="btn btn-sm btn-outline-primary">✏️</a>
-                            <a href="/delete_investment/{{ inv.id }}" 
-                               class="btn btn-sm btn-outline-danger"
-                               onclick="return confirm('Delete this record? This will reduce your Cash in Hand.')">🗑️</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-      </div>
     </div>
-  </div>
 </div>
 {% endblock %}
