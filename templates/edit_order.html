@@ -48,7 +48,7 @@
         <div class="row row-cols-1 row-cols-md-3 g-3" id="productGrid" style="max-height: 80vh; overflow-y: auto;">
             {% for p in products %}
             <div class="col product-card-col" data-name="{{ p.name.lower() }} {{ p.sku.lower() if p.sku else '' }}">
-                <div class="card h-100 shadow-sm border-0" onclick="addToCart({{ p.id }}, '{{ p.name }}', '{{ p.size }}', {{ p.price }}, {{ p.stock }})" style="cursor: pointer;">
+                <div class="card h-100 shadow-sm border-0" onclick="addToCart({{ p.id }}, '{{ p.name }}', '{{ p.size }}', {{ p.price }}, {{ p.stock }}, '{{ p.sku if p.sku else '' }}')" style="cursor: pointer;">
                     <div style="height: 150px; overflow: hidden; background-color: #f8f9fa;" class="d-flex align-items-center justify-content-center">
                         {% if p.image %}
                         <img src="{{ url_for('static', filename='uploads/' + p.image) }}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -57,6 +57,9 @@
                         {% endif %}
                     </div>
                     <div class="card-body p-2 text-center">
+                        {% if p.sku %}
+                        <small class="text-muted d-block mb-1" style="font-size: 11px;">SKU: {{ p.sku }}</small>
+                        {% endif %}
                         <h6 class="card-title mb-1 text-truncate">{{ p.name }}</h6>
                         <span class="badge bg-light text-dark border">{{ p.size }}</span>
                         <div class="mt-2 text-primary fw-bold">Rs. {{ p.price }}</div>
@@ -83,7 +86,8 @@
                 price: {{ (item.subtotal + item.discount) / item.quantity }},
                 qty: {{ item.quantity }},
                 discount: {{ item.discount or 0 }},
-                maxStock: 999 // In edit mode, we relax the stock check slightly for UX
+                maxStock: 999, // In edit mode, we relax the stock check slightly for UX
+                sku: "{{ item.product.sku if (item.product and item.product.sku) else '' }}"
             });
         {% endfor %}
         renderCart();
@@ -96,10 +100,10 @@
         for (let card of cards) card.style.display = card.getAttribute('data-name').includes(input) ? "" : "none";
     }
 
-    function addToCart(id, name, size, price, maxStock) {
+    function addToCart(id, name, size, price, maxStock, sku = '') {
         const existingItem = cart.find(i => i.id === id);
         if (existingItem) { existingItem.qty++; } 
-        else { cart.push({ id, name, size, price, qty: 1, maxStock, discount: 0 }); }
+        else { cart.push({ id, name, size, price, qty: 1, maxStock, discount: 0, sku: sku }); }
         renderCart();
     }
 
@@ -112,7 +116,10 @@
             total += sub;
             tbody.innerHTML += `
                 <tr>
-                    <td><div class="fw-bold">${item.name}</div></td>
+                    <td>
+                        <div class="fw-bold">${item.name}</div>
+                        ${item.sku ? `<small class="text-muted d-block" style="font-size:11px; line-height: 1.2;">SKU: ${item.sku}</small>` : ''}
+                    </td>
                     <td><input type="number" class="form-control form-control-sm px-1 text-center" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)"></td>
                     <td><input type="number" class="form-control form-control-sm px-1 text-center text-danger" value="${item.discount || 0}" min="0" onchange="updateDisc(${index}, this.value)"></td>
                     <td>Rs. ${sub}</td>

@@ -108,42 +108,6 @@
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header" style="color: var(--warning);">Low Stock</div>
-            <ul class="list-group list-group-flush list-group-sm">
-                {% for item in low_stock %}
-                <li class="list-group-item d-flex justify-content-between align-items-center"
-                    style="border-color: var(--hairline);">
-                    <span>{{ item.name }}</span>
-                    <span class="badge" style="background: var(--warning-tint); color: var(--warning);">{{ item.stock }}
-                        left</span>
-                </li>
-                {% else %}
-                <li class="list-group-item text-center"
-                    style="color: var(--text-secondary); border-color: var(--hairline);">All products well stocked.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header" style="color: var(--danger);">Out of Stock</div>
-            <ul class="list-group list-group-flush list-group-sm">
-                {% for item in out_of_stock %}
-                <li class="list-group-item d-flex justify-content-between align-items-center"
-                    style="border-color: var(--hairline);">
-                    <span>{{ item.name }}</span>
-                    <span class="badge bg-danger rounded-pill">0</span>
-                </li>
-                {% else %}
-                <li class="list-group-item text-center"
-                    style="color: var(--text-secondary); border-color: var(--hairline);">Nothing out of stock.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
@@ -151,6 +115,7 @@
 </div>
 
 <div class="row mb-4 g-3">
+    <!-- Total Orders -->
     <div class="col-md-3 col-6">
         <div class="card h-100">
             <div class="card-body">
@@ -167,6 +132,7 @@
         </div>
     </div>
 
+    <!-- Avg. Order Value / Cost breakdown -->
     <div class="col-md-3 col-6">
         <div class="card h-100">
             <div class="card-body">
@@ -174,16 +140,17 @@
                     <span
                         style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block;"></span>
                     <span
-                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Avg.
-                        Order Value</span>
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Avg. Order Value</span>
                 </div>
-                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ "%.0f"|format(avg_order_value) }}
-                </h2>
-                <small>Revenue per order</small>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">Rs. {{ "%.0f"|format(avg_order_value) }}</h2>
+                <small title="COGS & Expense per order" style="cursor: help;">
+                    Cost: Rs. {{ "%.0f"|format(avg_total_cost_per_order) }} (Rs. {{ "%.0f"|format(avg_cogs_per_order) }} cogs / Rs. {{ "%.0f"|format(avg_expense_per_order) }} op)
+                </small>
             </div>
         </div>
     </div>
 
+    <!-- Profit Margin -->
     <div class="col-md-3 col-6">
         <div class="card h-100">
             <div class="card-body">
@@ -194,13 +161,13 @@
                         style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Profit
                         Margin</span>
                 </div>
-                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ "%.1f"|format(profit_margin_pct) }}%
-                </h2>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ "%.1f"|format(profit_margin_pct) }}%</h2>
                 <small>Of gross revenue</small>
             </div>
         </div>
     </div>
 
+    <!-- Inventory Turnover Rate -->
     <div class="col-md-3 col-6">
         <div class="card h-100">
             <div class="card-body">
@@ -208,61 +175,206 @@
                     <span
                         style="width: 8px; height: 8px; border-radius: 50%; background: var(--text); display: inline-block;"></span>
                     <span
-                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Customers</span>
+                        style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Inventory Turnover</span>
                 </div>
-                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ total_customers }}</h2>
-                <small>Unique buyers to date</small>
+                <h2 class="mb-1" style="font-size: 1.7rem; font-weight: 700;">{{ "%.2f"|format(inventory_turnover_rate) }}x</h2>
+                <small>COGS / Avg. Inventory</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4 g-3">
+    <!-- Revenue Trend Chart Card -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--hairline);">
+                <span class="fw-bold">Revenue Trend</span>
+                <div class="btn-group" role="group" style="padding: 2px; background: var(--surface-muted); border-radius: 8px;">
+                    <button type="button" class="btn btn-sm btn-light py-1 px-2 border-0 fw-medium active-trend-btn" id="btn-daily" onclick="switchTrend('daily')" style="font-size: 0.72rem; border-radius: 6px; background: var(--surface); box-shadow: var(--shadow-rest);">Daily</button>
+                    <button type="button" class="btn btn-sm py-1 px-2 border-0 fw-medium text-muted" id="btn-weekly" onclick="switchTrend('weekly')" style="font-size: 0.72rem; border-radius: 6px; background: transparent;">Weekly</button>
+                    <button type="button" class="btn btn-sm py-1 px-2 border-0 fw-medium text-muted" id="btn-monthly" onclick="switchTrend('monthly')" style="font-size: 0.72rem; border-radius: 6px; background: transparent;">Monthly</button>
+                </div>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <!-- Daily Trend -->
+                <div id="trend-daily" class="trend-chart d-flex align-items-end gap-2" style="height: 160px;">
+                    {% for d in daily_revenue %}
+                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100" title="{{ d.date }}: Rs. {{ d.revenue }} sales / Rs. {{ d.profit }} profit">
+                        <span class="small mb-1" style="color: var(--text-secondary); font-size: 0.65rem; white-space: nowrap;">Rs. {{ "%.0f"|format(d.revenue) }}</span>
+                        <div style="width: 100%; max-width: 32px; height: {{ d.pct if d.pct > 3 else 3 }}%; background: var(--accent); border-radius: 4px 4px 0 0; transition: height 0.4s var(--ease);"></div>
+                        <span class="small mt-2" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 500;">{{ d.label }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-center w-100 my-auto text-muted">No recent sales data.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Weekly Trend -->
+                <div id="trend-weekly" class="trend-chart d-none align-items-end gap-2" style="height: 160px;">
+                    {% for w in weekly_revenue %}
+                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100" title="{{ w.date }}: Rs. {{ w.revenue }} sales / Rs. {{ w.profit }} profit">
+                        <span class="small mb-1" style="color: var(--text-secondary); font-size: 0.65rem; white-space: nowrap;">Rs. {{ "%.0f"|format(w.revenue) }}</span>
+                        <div style="width: 100%; max-width: 32px; height: {{ w.pct if w.pct > 3 else 3 }}%; background: var(--success); border-radius: 4px 4px 0 0; transition: height 0.4s var(--ease);"></div>
+                        <span class="small mt-2" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 500;">{{ w.label }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-center w-100 my-auto text-muted">No recent weekly sales data.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Monthly Trend -->
+                <div id="trend-monthly" class="trend-chart d-none align-items-end gap-2" style="height: 160px;">
+                    {% for m in monthly_revenue %}
+                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100" title="{{ m.month }}: Rs. {{ m.revenue }} sales / Rs. {{ m.profit }} profit">
+                        <span class="small mb-1" style="color: var(--text-secondary); font-size: 0.65rem; white-space: nowrap;">Rs. {{ "%.0f"|format(m.revenue) }}</span>
+                        <div style="width: 100%; max-width: 32px; height: {{ m.pct if m.pct > 3 else 3 }}%; background: var(--warning); border-radius: 4px 4px 0 0; transition: height 0.4s var(--ease);"></div>
+                        <span class="small mt-2" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 500;">{{ m.month }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-center w-100 my-auto text-muted">No monthly sales data.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-7">
+    <!-- Cohorts & Order Status breakdown Card -->
+    <div class="col-lg-5">
         <div class="card h-100">
-            <div class="card-header">Revenue Trend</div>
-            <div class="card-body">
-                {% if monthly_revenue %}
-                <div class="d-flex align-items-end gap-3" style="height: 160px;">
-                    {% for m in monthly_revenue %}
-                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100">
-                        <span class="small mb-1" style="color: var(--text-secondary); font-size: 0.7rem;">Rs. {{
-                            "%.0f"|format(m.revenue) }}</span>
-                        <div
-                            style="width: 100%; max-width: 40px; height: {{ m.pct if m.pct > 3 else 3 }}%; background: var(--accent); border-radius: 6px 6px 0 0; transition: height 0.6s var(--ease);">
+            <div class="card-header">Customer Cohorts & Status</div>
+            <div class="card-body d-flex flex-column justify-content-between gap-3">
+                <!-- Customer Split -->
+                <div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-bold">Customer Ratio (New vs. Repeat)</span>
+                        <span class="small" style="color: var(--text-secondary);">{{ total_customers }} Buyers</span>
+                    </div>
+                    <div class="d-flex" style="background: var(--surface-muted); border-radius: var(--radius-pill); height: 10px; overflow: hidden;" title="New vs Repeat ratio">
+                        <div style="width: {{ new_pct }}%; height: 100%; background: var(--accent); border-radius: var(--radius-pill) 0 0 var(--radius-pill); transition: width 0.6s var(--ease);" title="New: {{ new_pct }}% ({{ new_cust }})"></div>
+                        <div style="width: {{ repeat_pct }}%; height: 100%; background: var(--success); border-radius: 0 var(--radius-pill) var(--radius-pill) 0; transition: width 0.6s var(--ease);" title="Repeat: {{ repeat_pct }}% ({{ repeat_cust }})"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1" style="font-size: 0.72rem; color: var(--text-secondary);">
+                        <span>🔵 New: <strong>{{ new_pct }}%</strong></span>
+                        <span>🟢 Repeat: <strong>{{ repeat_pct }}%</strong></span>
+                    </div>
+                </div>
+
+                <!-- Order Status Breakdown -->
+                <div>
+                    <h6 class="small fw-bold mb-2">Order Status Breakdown</h6>
+                    {% for s in order_status_breakdown %}
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1" style="font-size: 0.8rem;">
+                            <span class="fw-medium text-secondary">{{ s.label }}</span>
+                            <span class="fw-bold" style="color: var(--text);">{{ s.count }}</span>
                         </div>
-                        <span class="small mt-2" style="color: var(--text-secondary); font-size: 0.72rem;">{{ m.month
-                            }}</span>
+                        <div style="background: var(--surface-muted); border-radius: var(--radius-pill); height: 6px; overflow: hidden;">
+                            <div style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; border-radius: var(--radius-pill); transition: width 0.6s var(--ease);"></div>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
-                {% else %}
-                <p class="text-center mb-0 py-4" style="color: var(--text-secondary);">Not enough order history yet to
-                    show a trend.</p>
-                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Intelligence & Operational Insights Row -->
+<div class="row mb-4 g-3">
+    <!-- Demand Forecasting Card -->
+    <div class="col-lg-5 col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Demand Forecasting Signals</span>
+                <span class="badge bg-light text-dark fw-normal" style="font-size: 0.68rem;">14d Velocity Basis</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle" style="font-size: 0.82rem;">
+                        <thead>
+                            <tr class="table-light">
+                                <th class="ps-3">Item</th>
+                                <th>Speed/Wk</th>
+                                <th>Stock</th>
+                                <th>Runout</th>
+                                <th class="pe-3 text-end">Signal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for signal in demand_signals %}
+                            <tr>
+                                <td class="ps-3 fw-medium">{{ signal.name }} <span class="text-muted small">({{ signal.size }})</span></td>
+                                <td>{{ signal.velocity }} u</td>
+                                <td>{{ signal.stock }}</td>
+                                <td>{{ signal.days_left }}d</td>
+                                <td class="pe-3 text-end">
+                                    <span class="badge {{ signal.badge_class }}" style="font-size: 0.7rem; font-weight: 600; padding: 0.25em 0.5em;">{{ signal.status }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-secondary">No demand projections yet (requires recent sales).</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-5">
+    <!-- Dead Stock Analyzer Card -->
+    <div class="col-lg-4 col-md-6">
         <div class="card h-100">
-            <div class="card-header">Order Status Breakdown</div>
-            <div class="card-body">
-                {% for s in order_status_breakdown %}
-                <div class="mb-3 {{ '' if loop.last else '' }}">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="small fw-bold">{{ s.label }}</span>
-                        <span class="small" style="color: var(--text-secondary);">{{ s.count }}</span>
-                    </div>
-                    <div
-                        style="background: var(--surface-muted); border-radius: var(--radius-pill); height: 8px; overflow: hidden;">
-                        <div
-                            style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; border-radius: var(--radius-pill); transition: width 0.6s var(--ease);">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Dead Stock Analyzer</span>
+                <span class="badge bg-danger-tint text-danger fw-bold" style="font-size: 0.7rem;">Rs. {{ "%.0f"|format(dead_stock_value) }} Tied Up</span>
+            </div>
+            <div class="card-body p-0 d-flex flex-column justify-content-between">
+                <ul class="list-group list-group-flush list-group-sm mb-0">
+                    <li class="list-group-item table-light py-1 fw-bold" style="font-size: 0.8rem; border-color: var(--hairline);">Products unsold in last 30 days</li>
+                    {% for item in dead_stock_top %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2" style="border-color: var(--hairline); font-size: 0.82rem;">
+                        <div>
+                            <span class="fw-medium">{{ item.name }}</span> <span class="text-muted small">({{ item.size }})</span>
+                            <div class="text-muted" style="font-size: 0.72rem;">Stock: {{ item.stock }} units</div>
                         </div>
-                    </div>
-                </div>
-                {% endfor %}
+                        <span class="fw-bold text-secondary">Rs. {{ "%.0f"|format(item.value) }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-center py-4 text-secondary" style="border-color: var(--hairline);">No dead stock found! Excellent inventory turnover.</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
+
+    <!-- Peak Load Patterns Card -->
+    <div class="col-lg-3 col-md-12">
+        <div class="card h-100">
+            <div class="card-header">Peak Load Activity (24h)</div>
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <small class="text-muted d-block mb-3">Order activity distribution by hour of day</small>
+                    <div class="d-flex align-items-end gap-1 justify-content-between pt-2" style="height: 100px;">
+                        {% for h in peak_hours %}
+                        <div class="d-flex flex-column align-items-center flex-fill h-100 justify-content-end" title="{{ h.label }}: {{ h.count }} orders">
+                            <div style="width: 100%; height: {{ h.pct if h.pct > 3 else 3 }}%; background: var(--accent); border-radius: 2px; transition: height 0.6s var(--ease);"></div>
+                            {% if h.hour in ['00', '06', '12', '18'] %}
+                            <span style="font-size: 0.58rem; color: var(--text-secondary); margin-top: 4px; white-space: nowrap;">{{ h.label }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="border-top pt-2 mt-3" style="font-size: 0.74rem; color: var(--text-secondary);">
+                    <span>💡 Tip: Schedule staff and ads during active waves.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <div class="col-lg-6">
         <div class="card h-100">
@@ -350,7 +462,12 @@
                                     class="d-flex align-items-center justify-content-center text-muted"
                                     title="No image">🛒</span>
                                 {% endif %}
-                                <span>{{ item.product_name }} (x{{ item.quantity }})</span>
+                                <span>
+                                    {% if item.product and item.product.sku %}
+                                    <small class="text-muted d-block" style="font-size: 11px; line-height: 1.2;">SKU: {{ item.product.sku }}</small>
+                                    {% endif %}
+                                    {{ item.product_name }} (x{{ item.quantity }})
+                                </span>
                             </li>
                             {% endfor %}
                         </ul>
@@ -419,4 +536,40 @@
         </div>
     </div>
 </div>
+
+<script>
+function switchTrend(type) {
+    // Hide all charts
+    document.querySelectorAll('.trend-chart').forEach(el => {
+        el.classList.add('d-none');
+        el.classList.remove('d-flex');
+    });
+    
+    // Show selected chart
+    const activeChart = document.getElementById('trend-' + type);
+    if (activeChart) {
+        activeChart.classList.remove('d-none');
+        activeChart.classList.add('d-flex');
+    }
+    
+    // Update button states
+    const buttons = ['daily', 'weekly', 'monthly'];
+    buttons.forEach(b => {
+        const btn = document.getElementById('btn-' + b);
+        if (btn) {
+            if (b === type) {
+                btn.classList.add('btn-light');
+                btn.classList.remove('text-muted');
+                btn.style.background = 'var(--surface)';
+                btn.style.boxShadow = 'var(--shadow-rest)';
+            } else {
+                btn.classList.remove('btn-light');
+                btn.classList.add('text-muted');
+                btn.style.background = 'transparent';
+                btn.style.boxShadow = 'none';
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

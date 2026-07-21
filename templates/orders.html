@@ -43,6 +43,9 @@
                                       class="d-flex align-items-center justify-content-center text-muted" title="No image">🛒</span>
                                 {% endif %}
                                 <span>
+                                    {% if item.product and item.product.sku %}
+                                    <small class="text-muted d-block" style="font-size: 11px; line-height: 1.2;">SKU: {{ item.product.sku }}</small>
+                                    {% endif %}
                                     {{ item.product_name }} (x{{ item.quantity }})
                                     {% if item.discount and item.discount > 0 %}
                                     <br><span class="text-danger" style="font-size: 11px;">Discount: Rs. {{ item.discount }}</span>

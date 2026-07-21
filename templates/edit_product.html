@@ -37,13 +37,17 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col">
+                    <div class="col-4">
                         <label class="form-label">Cost Price</label>
-                        <input type="number" name="cost_price" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
+                        <input type="number" name="cost_price" id="costPriceInput" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
                     </div>
-                    <div class="col">
+                    <div class="col-4">
+                        <label class="form-label">Margin (%)</label>
+                        <input type="number" id="profitMarginInput" class="form-control" placeholder="Margin %" step="0.1">
+                    </div>
+                    <div class="col-4">
                         <label class="form-label">Selling Price</label>
-                        <input type="number" name="price" class="form-control" step="0.01" value="{{ p.price }}" required>
+                        <input type="number" name="price" id="sellingPriceInput" class="form-control" step="0.01" value="{{ p.price }}" required>
                     </div>
                 </div>
 
@@ -60,4 +64,39 @@
         </div>
     </div>
 </div>
+
+<script>
+    const costInput = document.getElementById('costPriceInput');
+    const marginInput = document.getElementById('profitMarginInput');
+    const priceInput = document.getElementById('sellingPriceInput');
+
+    function updateSellingPrice() {
+        const cost = parseFloat(costInput.value) || 0;
+        const margin = parseFloat(marginInput.value) || 0;
+        if (cost > 0) {
+            priceInput.value = (cost * (1 + margin / 100)).toFixed(2);
+        } else {
+            priceInput.value = '';
+        }
+    }
+
+    function updateMargin() {
+        const cost = parseFloat(costInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        if (cost > 0) {
+            marginInput.value = (((price - cost) / cost) * 100).toFixed(1);
+        } else {
+            marginInput.value = '';
+        }
+    }
+
+    costInput.addEventListener('input', updateSellingPrice);
+    marginInput.addEventListener('input', updateSellingPrice);
+    priceInput.addEventListener('input', updateMargin);
+
+    // Initial calculation on load
+    document.addEventListener("DOMContentLoaded", () => {
+        updateMargin();
+    });
+</script>
 {% endblock %}
