@@ -1,90 +1,104 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center pb-4 mb-4" style="border-bottom: 1px solid var(--hairline);">
+<div class="page-header">
     <div>
-        <h1 class="h3 mb-1">Order History</h1>
-        <p class="mb-0" style="color: var(--text-secondary); font-size: 0.92rem;">Every order, past and present.</p>
+        <div class="page-header-eyebrow">
+            <div class="page-header-eyebrow-line"></div>
+            <span class="page-header-eyebrow-text">Operations</span>
+        </div>
+        <h1>Order <span class="gold">History</span></h1>
+        <p class="page-header-sub">Every transaction, past and present.</p>
     </div>
-    <a href="/" class="btn btn-outline-secondary">Back to Dashboard</a>
+    <a href="/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
 </div>
 
 <div class="card">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0 align-middle">
-            <thead>
-                <tr>
-                    <th>Order ID</th>
-                    <th>Date</th>
-                    <th>Customer Details</th>
-                    <th>Items</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td><strong>#{{ order.id }}</strong></td>
-                    <td>{{ order.date.strftime('%Y-%m-%d') }}</td>
-                    <td>
-                        <strong>{{ order.customer_name }}</strong><br>
-                        <small>{{ order.phone }}</small><br>
-                        <small class="text-muted">{{ order.address }}</small>
-                    </td>
-                    <td>
-                        <ul class="list-unstyled mb-0 small">
-                        {% for item in order.items %}
-                            <li class="d-flex align-items-center gap-2 mb-1">
-                                {% if item.product and item.product.image %}
-                                <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}"
-                                     style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">
-                                {% else %}
-                                <span style="width: 32px; height: 32px; background: var(--surface-muted); border-radius: 6px; flex-shrink: 0;"
-                                      class="d-flex align-items-center justify-content-center text-muted" title="No image">🛒</span>
-                                {% endif %}
-                                <span>
-                                    {% if item.product and item.product.sku %}
-                                    <small class="text-muted d-block" style="font-size: 11px; line-height: 1.2;">SKU: {{ item.product.sku }}</small>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>
+                            <span style="font-family: 'Oswald'; font-size: 1rem; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;">#{{ order.id }}</span>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">{{ order.date.strftime('%Y-%m-%d') }}</span>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; font-size: 0.85rem;">{{ order.customer_name }}</div>
+                            <div style="font-size: 0.72rem; color: var(--text-secondary);">{{ order.phone }}</div>
+                            <div style="font-size: 0.68rem; color: var(--text-tertiary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ order.address }}</div>
+                        </td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                            {% for item in order.items %}
+                                <li class="d-flex align-items-center gap-2 mb-1">
+                                    {% if item.product and item.product.image %}
+                                    <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}"
+                                         style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--line-soft);">
+                                    {% else %}
+                                    <span style="width: 30px; height: 30px; background: var(--surface-2); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line-soft); font-size: 0.8rem;">👗</span>
                                     {% endif %}
-                                    {{ item.product_name }} (x{{ item.quantity }})
-                                    {% if item.discount and item.discount > 0 %}
-                                    <br><span class="text-danger" style="font-size: 11px;">Discount: Rs. {{ item.discount }}</span>
-                                    {% endif %}
-                                </span>
-                            </li>
-                        {% endfor %}
-                        </ul>
-                    </td>
-                    <td><strong>Rs. {{ order.total_amount }}</strong></td>
-                    
-                    <td>
-                        <div class="d-flex gap-2 align-items-center">
-                            <form action="/update_status/{{ order.id }}" method="POST">
-                                <select name="status" class="form-select form-select-sm" 
-                                        style="width: 115px; font-weight: 600; 
-                                        color: {{ 'var(--success)' if order.status == 'Delivered' else ('var(--accent)' if order.status == 'Shipped' else 'var(--text)') }}"
-                                        onchange="this.form.submit()">
-                                    <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                    <option value="Returned" {% if order.status == 'Returned' %}selected{% endif %}>Returned</option>
-                                </select>
-                            </form>
-
-                            <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning" title="Edit Order">✏️</a>
-
-                            <a href="/delete_order/{{ order.id }}" 
-                               class="btn btn-sm btn-outline-danger" 
-                               onclick="return confirm('Are you sure? This will delete the order and RESTORE the stock.')"
-                               title="Delete Order">
-                                🗑️
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                                    <span>
+                                        {% if item.product and item.product.sku %}
+                                        <small style="color: var(--text-tertiary); display: block; font-size: 10px; line-height: 1.2; letter-spacing: 0.05em;">{{ item.product.sku }}</small>
+                                        {% endif %}
+                                        <span style="font-size: 0.8rem; font-weight: 500;">{{ item.product_name }}
+                                            <span style="color: var(--text-tertiary);">×{{ item.quantity }}</span>
+                                        </span>
+                                        {% if item.discount and item.discount > 0 %}
+                                        <span style="color: var(--danger); font-size: 0.7rem; display: block;">−Rs. {{ item.discount }}</span>
+                                        {% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                        <td>
+                            <span style="font-family: 'Oswald'; font-size: 0.95rem; font-weight: 600; white-space: nowrap;">Rs. {{ order.total_amount }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                <form action="/update_status/{{ order.id }}" method="POST">
+                                    <select name="status" class="form-select form-select-sm"
+                                            style="width: 118px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+                                                   color: {{ 'var(--success)' if order.status == 'Delivered' else ('var(--info)' if order.status == 'Shipped' else ('var(--danger)' if order.status == 'Returned' else 'var(--text-secondary)')) }};"
+                                            onchange="this.form.submit()">
+                                        <option value="Pending"   {% if order.status == 'Pending'   %}selected{% endif %}>Pending</option>
+                                        <option value="Shipped"   {% if order.status == 'Shipped'   %}selected{% endif %}>Shipped</option>
+                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                        <option value="Returned"  {% if order.status == 'Returned'  %}selected{% endif %}>Returned</option>
+                                    </select>
+                                </form>
+                                <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning" title="Edit Order">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="/delete_order/{{ order.id }}"
+                                   class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Are you sure? This will delete the order and RESTORE the stock.')"
+                                   title="Delete Order">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,66 +1,83 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="container mt-4" style="max-width: 600px;">
-    <div class="card shadow">
-        <div class="card-header" style="color: var(--accent); font-weight: 600;">
-            <h4 class="mb-0" style="font-size: 1.1rem;">Edit Product: {{ p.name }}</h4>
+<div class="page-header">
+    <div>
+        <div class="page-header-eyebrow">
+            <div class="page-header-eyebrow-line"></div>
+            <span class="page-header-eyebrow-text">Catalog Control</span>
         </div>
-        <div class="card-body">
-            <form method="POST" enctype="multipart/form-data">
-                
-                <div class="text-center mb-3">
+        <h1>Edit Product: <span class="gold">{{ p.name }}</span></h1>
+        <p class="page-header-sub">Update inventory details and pricing specifications.</p>
+    </div>
+    <a href="/inventory" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card">
+            <div class="card-header">Product Specifications</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+
                     {% if p.image %}
-                    <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="100" class="rounded border">
-                    <p class="small text-muted mt-1">Current Image</p>
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='uploads/' + p.image) }}"
+                             style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line);">
+                        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.4rem; font-style: italic;">Current Product Image</div>
+                    </div>
                     {% endif %}
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Change Image (Optional)</label>
-                    <input type="file" name="image" class="form-control">
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col">
-                        <label class="form-label">SKU (Optional)</label>
-                        <input type="text" name="sku" class="form-control" value="{{ p.sku if p.sku else '' }}">
+                    <div class="mb-3">
+                        <label class="form-label">Change Image <span style="text-transform: none; font-weight: 400; color: var(--text-tertiary);">(optional)</span></label>
+                        <input type="file" name="image" class="form-control" accept="image/*">
                     </div>
-                    <div class="col">
-                        <label class="form-label">Size</label>
-                        <input type="text" name="size" class="form-control" value="{{ p.size }}" required>
-                    </div>
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Product Name</label>
-                    <input type="text" name="name" class="form-control" value="{{ p.name }}" required>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-4">
-                        <label class="form-label">Cost Price</label>
-                        <input type="number" name="cost_price" id="costPriceInput" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
+                    <div class="row mb-3 g-3">
+                        <div class="col">
+                            <label class="form-label">SKU</label>
+                            <input type="text" name="sku" class="form-control" value="{{ p.sku if p.sku else '' }}">
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Size</label>
+                            <input type="text" name="size" class="form-control" value="{{ p.size }}" required>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <label class="form-label">Margin (%)</label>
-                        <input type="number" id="profitMarginInput" class="form-control" placeholder="Margin %" step="0.1">
-                    </div>
-                    <div class="col-4">
-                        <label class="form-label">Selling Price</label>
-                        <input type="number" name="price" id="sellingPriceInput" class="form-control" step="0.01" value="{{ p.price }}" required>
-                    </div>
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Stock Quantity</label>
-                    <input type="number" name="stock" class="form-control" value="{{ p.stock }}" required>
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label">Product Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ p.name }}" required>
+                    </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success">Save Changes</button>
-                    <a href="/inventory" class="btn btn-secondary">Cancel</a>
-                </div>
-            </form>
+                    <div class="row mb-3 g-3">
+                        <div class="col-4">
+                            <label class="form-label">Cost Price</label>
+                            <input type="number" name="cost_price" id="costPriceInput" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Margin %</label>
+                            <input type="number" id="profitMarginInput" class="form-control" placeholder="%" step="0.1">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Selling Price</label>
+                            <input type="number" name="price" id="sellingPriceInput" class="form-control" step="0.01" value="{{ p.price }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Stock Quantity</label>
+                        <input type="number" name="stock" class="form-control" value="{{ p.stock }}" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-lg me-1"></i>Save Specifications
+                        </button>
+                        <a href="/inventory" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -73,30 +90,18 @@
     function updateSellingPrice() {
         const cost = parseFloat(costInput.value) || 0;
         const margin = parseFloat(marginInput.value) || 0;
-        if (cost > 0) {
-            priceInput.value = (cost * (1 + margin / 100)).toFixed(2);
-        } else {
-            priceInput.value = '';
-        }
+        priceInput.value = cost > 0 ? (cost * (1 + margin / 100)).toFixed(2) : '';
     }
-
     function updateMargin() {
         const cost = parseFloat(costInput.value) || 0;
         const price = parseFloat(priceInput.value) || 0;
-        if (cost > 0) {
-            marginInput.value = (((price - cost) / cost) * 100).toFixed(1);
-        } else {
-            marginInput.value = '';
-        }
+        marginInput.value = cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : '';
     }
 
     costInput.addEventListener('input', updateSellingPrice);
     marginInput.addEventListener('input', updateSellingPrice);
     priceInput.addEventListener('input', updateMargin);
 
-    // Initial calculation on load
-    document.addEventListener("DOMContentLoaded", () => {
-        updateMargin();
-    });
+    document.addEventListener("DOMContentLoaded", () => { updateMargin(); });
 </script>
 {% endblock %}

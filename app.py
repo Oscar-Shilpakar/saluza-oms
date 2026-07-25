@@ -581,7 +581,7 @@ def inventory():
             
         return redirect(url_for('inventory'))
     
-    products = Product.query.all()
+    products = Product.query.order_by(Product.id.desc()).all()
     return render_template('inventory.html', products=products)
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
@@ -606,7 +606,7 @@ def edit_product(id):
 
 @app.route('/new_order')
 def new_order():
-    products = Product.query.filter(Product.stock > 0).all()
+    products = Product.query.filter(Product.stock > 0).order_by(Product.id.desc()).all()
     return render_template('new_order.html', products=products)
 
 @app.route('/create_order', methods=['POST'])
@@ -656,7 +656,7 @@ def create_order():
 @app.route('/edit_order/<int:id>')
 def edit_order_page(id):
     order = Order.query.get_or_404(id)
-    products = Product.query.all()
+    products = Product.query.order_by(Product.id.desc()).all()
     return render_template('edit_order.html', order=order, products=products)
 
 @app.route('/update_order_data', methods=['POST'])
