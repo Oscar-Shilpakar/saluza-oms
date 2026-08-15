@@ -34,15 +34,19 @@
                         </table>
                     </div>
                     <div id="emptyCartMsg" class="text-center py-5" style="color: var(--text-tertiary);">
-                        <i class="bi bi-cart3" style="font-size: 1.8rem; display: block; margin-bottom: 0.4rem; opacity: 0.5;"></i>
-                        <span style="font-size: 0.78rem; font-style: italic;">Cart is empty. Click items on the right to add.</span>
+                        <i class="bi bi-cart3"
+                            style="font-size: 1.8rem; display: block; margin-bottom: 0.4rem; opacity: 0.5;"></i>
+                        <span style="font-size: 0.78rem; font-style: italic;">Cart is empty. Click items on the right to
+                            add.</span>
                     </div>
                 </div>
 
                 <!-- Total Row -->
-                <div class="d-flex justify-content-between align-items-center px-3 py-3" style="border-top: 1px solid var(--line-soft); background: var(--surface-2);">
+                <div class="d-flex justify-content-between align-items-center px-3 py-3"
+                    style="border-top: 1px solid var(--line-soft); background: var(--surface-2);">
                     <span class="stat-label mb-0">Total Payable</span>
-                    <span style="font-family: 'Oswald', sans-serif; font-size: 1.5rem; font-weight: 600; color: var(--gold);">
+                    <span
+                        style="font-family: 'Oswald', sans-serif; font-size: 1.5rem; font-weight: 600; color: var(--gold);">
                         Rs. <span id="grandTotal">0</span>
                     </span>
                 </div>
@@ -50,9 +54,12 @@
                 <!-- Customer Details Form -->
                 <div class="p-3" style="border-top: 1px solid var(--line-soft);">
                     <div class="stat-label mb-2">Customer Details</div>
-                    <input type="text" id="custName" class="form-control form-control-sm mb-2" placeholder="Client Name">
-                    <input type="text" id="custPhone" class="form-control form-control-sm mb-2" placeholder="Phone Number">
-                    <textarea id="custAddress" class="form-control form-control-sm mb-3" rows="2" placeholder="Delivery Address"></textarea>
+                    <input type="text" id="custName" class="form-control form-control-sm mb-2"
+                        placeholder="Client Name">
+                    <input type="text" id="custPhone" class="form-control form-control-sm mb-2"
+                        placeholder="Phone Number">
+                    <textarea id="custAddress" class="form-control form-control-sm mb-3" rows="2"
+                        placeholder="Delivery Address"></textarea>
                     <button onclick="submitOrder()" class="btn btn-primary w-100">
                         <i class="bi bi-check-lg me-1"></i>Confirm Order
                     </button>
@@ -68,12 +75,14 @@
             <div class="col-sm-7">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search catalog by name or SKU…" onkeyup="filterAndSortProducts()">
+                    <input type="text" id="searchInput" class="form-control"
+                        placeholder="Search catalog by name or SKU…" onkeyup="filterAndSortProducts()">
                 </div>
             </div>
             <div class="col-sm-5">
                 <div class="d-flex align-items-center gap-2">
-                    <span style="font-size: 0.65rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
+                    <span
+                        style="font-size: 0.65rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
                     <select id="sortSelect" class="form-select form-select-sm" onchange="filterAndSortProducts()">
                         <option value="newest" selected>🆕 Date Added: Newest</option>
                         <option value="oldest">📜 Date Added: Oldest</option>
@@ -86,29 +95,39 @@
         </div>
 
         <!-- PRODUCT GRID -->
-        <div class="row row-cols-2 row-cols-md-3 g-3" id="productGrid" style="max-height: 76vh; overflow-y: auto; padding-right: 2px;">
+        <div class="row row-cols-2 row-cols-md-3 g-3" id="productGrid"
+            style="max-height: 76vh; overflow-y: auto; padding-right: 2px;">
             {% for p in products %}
-            <div class="col product-card-col"
-                 data-id="{{ p.id }}"
-                 data-name="{{ p.name.lower() }} {{ p.sku.lower() if p.sku else '' }}"
-                 data-title="{{ p.name.lower() }}"
-                 data-price="{{ p.price }}">
-                <div class="card h-100" onclick="addToCart({{ p.id }}, '{{ p.name }}', '{{ p.size }}', {{ p.price }}, {{ p.stock }}, '{{ p.sku if p.sku else '' }}')">
-                    <div style="height: 130px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center;">
+            <div class="col product-card-col" data-id="{{ p.id }}"
+                data-name="{{ p.name.lower() }} {{ p.sku.lower() if p.sku else '' }}" data-title="{{ p.name.lower() }}"
+                data-price="{{ p.price }}">
+                <div class="card h-100"
+                    onclick="addToCart({{ p.id }}, '{{ p.name }}', '{{ p.size }}', {{ p.price }}, {{ p.stock }}, '{{ p.sku if p.sku else '' }}')">
+                    <div
+                        style="height: 130px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center;">
                         {% if p.image %}
-                        <img src="{{ url_for('static', filename='uploads/' + p.image) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="{{ url_for('static', filename='uploads/' + p.image) }}"
+                            style="width: 100%; height: 100%; object-fit: cover;">
                         {% else %}
                         <span style="font-size: 1.8rem; color: var(--text-tertiary);">👗</span>
                         {% endif %}
                     </div>
                     <div class="card-body p-2 text-center">
                         {% if p.sku %}
-                        <small style="color: var(--gold); display: block; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 2px;">{{ p.sku }}</small>
+                        <small
+                            style="color: var(--gold); display: block; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 2px;">{{
+                            p.sku }}</small>
                         {% endif %}
-                        <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</div>
-                        <span class="badge bg-secondary" style="font-size: 0.58rem; margin-bottom: 6px;">{{ p.size }}</span>
-                        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--gold-light); font-size: 0.95rem;">Rs. {{ p.price }}</div>
-                        <small style="color: {{ 'var(--danger)' if p.stock < 5 else 'var(--text-tertiary)' }}; font-size: 0.68rem;">
+                        <div
+                            style="font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ p.name }}</div>
+                        <span class="badge bg-secondary" style="font-size: 0.58rem; margin-bottom: 6px;">{{ p.size
+                            }}</span>
+                        <div
+                            style="font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--gold-light); font-size: 0.95rem;">
+                            Rs. {{ p.price }}</div>
+                        <small
+                            style="color: {{ 'var(--danger)' if p.stock < 5 else 'var(--text-tertiary)' }}; font-size: 0.68rem;">
                             {{ p.stock }} in stock
                         </small>
                     </div>

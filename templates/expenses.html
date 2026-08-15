@@ -26,7 +26,8 @@
                 <form method="POST">
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <input type="text" name="description" class="form-control" placeholder="e.g. Meta Ads Campaign" required>
+                        <input type="text" name="description" class="form-control" placeholder="e.g. Meta Ads Campaign"
+                            required>
                     </div>
 
                     <div class="mb-3">
@@ -60,10 +61,13 @@
             <div class="card-body d-flex justify-content-between align-items-center py-3">
                 <div>
                     <div class="stat-label">Total Product Investment</div>
-                    <div style="font-size: 0.75rem; color: var(--text-tertiary); font-style: italic;">Cost of total stock catalog (COGS + Current Inventory)</div>
+                    <div style="font-size: 0.75rem; color: var(--text-tertiary); font-style: italic;">Cost of total
+                        stock catalog (COGS + Current Inventory)</div>
                 </div>
                 <div class="text-end">
-                    <div style="font-family: 'Oswald', sans-serif; font-size: 1.6rem; font-weight: 600; color: var(--gold);">Rs. {{ product_expense }}</div>
+                    <div
+                        style="font-family: 'Oswald', sans-serif; font-size: 1.6rem; font-weight: 600; color: var(--gold);">
+                        Rs. {{ product_expense }}</div>
                 </div>
             </div>
         </div>
@@ -97,20 +101,22 @@
                                     <span class="badge bg-gold">{{ exp.category }}</span>
                                 </td>
                                 <td>
-                                    <span style="font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--danger); font-size: 0.9rem;">
+                                    <span
+                                        style="font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--danger); font-size: 0.9rem;">
                                         Rs. {{ exp.amount }}
                                     </span>
                                 </td>
                                 <td>
                                     <a href="/delete_expense/{{ exp.id }}" class="btn btn-sm btn-outline-danger"
-                                       onclick="return confirm('Delete this expense entry?')" title="Delete">
+                                        onclick="return confirm('Delete this expense entry?')" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center py-4" style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">
+                                <td colspan="5" class="text-center py-4"
+                                    style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">
                                     No operating expenses recorded yet.
                                 </td>
                             </tr>

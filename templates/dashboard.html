@@ -15,7 +15,8 @@
         <a href="/export_excel" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-download me-1"></i>Export P&L
         </a>
-        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#investmentHistoryModal">
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+            data-bs-target="#investmentHistoryModal">
             <i class="bi bi-cash-coin me-1"></i>Manage Capital
         </button>
     </div>
@@ -115,9 +116,11 @@
         <div class="card h-100">
             <div class="card-header" style="justify-content: space-between;">
                 <span>Revenue Trend</span>
-                <div style="display: flex; gap: 2px; padding: 2px; background: var(--bg-2); border-radius: 6px; border: 1px solid var(--line-soft);">
-                    <button class="trend-btn active-trend-btn" id="btn-daily"   onclick="switchTrend('daily')">Daily</button>
-                    <button class="trend-btn" id="btn-weekly"  onclick="switchTrend('weekly')">Weekly</button>
+                <div
+                    style="display: flex; gap: 2px; padding: 2px; background: var(--bg-2); border-radius: 6px; border: 1px solid var(--line-soft);">
+                    <button class="trend-btn active-trend-btn" id="btn-daily"
+                        onclick="switchTrend('daily')">Daily</button>
+                    <button class="trend-btn" id="btn-weekly" onclick="switchTrend('weekly')">Weekly</button>
                     <button class="trend-btn" id="btn-monthly" onclick="switchTrend('monthly')">Monthly</button>
                 </div>
             </div>
@@ -126,39 +129,61 @@
                 <div id="trend-daily" class="trend-chart d-flex align-items-end gap-1" style="height: 160px;">
                     {% for d in daily_revenue %}
                     <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100"
-                         title="{{ d.date }}: Rs. {{ d.revenue }} / Rs. {{ d.profit }} profit">
-                        <span style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{ "%.0f"|format(d.revenue) }}</span>
-                        <div class="trend-bar" style="width: 100%; max-width: 26px; height: {{ d.pct if d.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold)); border-radius: 3px 3px 0 0;"></div>
-                        <span style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; white-space: nowrap; font-family: 'Inter', sans-serif;">{{ d.label }}</span>
+                        title="{{ d.date }}: Rs. {{ d.revenue }} / Rs. {{ d.profit }} profit">
+                        <span
+                            style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{
+                            "%.0f"|format(d.revenue) }}</span>
+                        <div class="trend-bar"
+                            style="width: 100%; max-width: 26px; height: {{ d.pct if d.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold)); border-radius: 3px 3px 0 0;">
+                        </div>
+                        <span
+                            style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; white-space: nowrap; font-family: 'Inter', sans-serif;">{{
+                            d.label }}</span>
                     </div>
                     {% else %}
-                    <p class="text-center w-100 my-auto" style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No recent sales data.</p>
+                    <p class="text-center w-100 my-auto"
+                        style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No recent sales
+                        data.</p>
                     {% endfor %}
                 </div>
                 <!-- Weekly -->
                 <div id="trend-weekly" class="trend-chart d-none align-items-end gap-1" style="height: 160px;">
                     {% for w in weekly_revenue %}
                     <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100"
-                         title="{{ w.date }}: Rs. {{ w.revenue }} / Rs. {{ w.profit }} profit">
-                        <span style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{ "%.0f"|format(w.revenue) }}</span>
-                        <div class="trend-bar" style="width: 100%; max-width: 26px; height: {{ w.pct if w.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--success-dark), var(--success)); border-radius: 3px 3px 0 0;"></div>
-                        <span style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; font-family: 'Inter', sans-serif;">{{ w.label }}</span>
+                        title="{{ w.date }}: Rs. {{ w.revenue }} / Rs. {{ w.profit }} profit">
+                        <span
+                            style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{
+                            "%.0f"|format(w.revenue) }}</span>
+                        <div class="trend-bar"
+                            style="width: 100%; max-width: 26px; height: {{ w.pct if w.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--success-dark), var(--success)); border-radius: 3px 3px 0 0;">
+                        </div>
+                        <span
+                            style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; font-family: 'Inter', sans-serif;">{{
+                            w.label }}</span>
                     </div>
                     {% else %}
-                    <p class="text-center w-100 my-auto" style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No weekly data.</p>
+                    <p class="text-center w-100 my-auto"
+                        style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No weekly data.</p>
                     {% endfor %}
                 </div>
                 <!-- Monthly -->
                 <div id="trend-monthly" class="trend-chart d-none align-items-end gap-1" style="height: 160px;">
                     {% for m in monthly_revenue %}
                     <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100"
-                         title="{{ m.month }}: Rs. {{ m.revenue }} / Rs. {{ m.profit }} profit">
-                        <span style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{ "%.0f"|format(m.revenue) }}</span>
-                        <div class="trend-bar" style="width: 100%; max-width: 26px; height: {{ m.pct if m.pct > 3 else 3 }}%; background: linear-gradient(to top, #8B6914, var(--gold-light)); border-radius: 3px 3px 0 0;"></div>
-                        <span style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; font-family: 'Inter', sans-serif;">{{ m.month }}</span>
+                        title="{{ m.month }}: Rs. {{ m.revenue }} / Rs. {{ m.profit }} profit">
+                        <span
+                            style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{
+                            "%.0f"|format(m.revenue) }}</span>
+                        <div class="trend-bar"
+                            style="width: 100%; max-width: 26px; height: {{ m.pct if m.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold-light)); border-radius: 3px 3px 0 0;">
+                        </div>
+                        <span
+                            style="color: var(--text-secondary); font-size: 0.62rem; font-weight: 600; margin-top: 6px; font-family: 'Inter', sans-serif;">{{
+                            m.month }}</span>
                     </div>
                     {% else %}
-                    <p class="text-center w-100 my-auto" style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No monthly data.</p>
+                    <p class="text-center w-100 my-auto"
+                        style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No monthly data.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -173,16 +198,20 @@
                 <div>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="stat-label mb-0">New vs. Repeat Customers</span>
-                        <span style="font-size: 0.68rem; color: var(--text-tertiary); font-family: 'Inter';">{{ total_customers }} total</span>
+                        <span style="font-size: 0.68rem; color: var(--text-tertiary); font-family: 'Inter';">{{
+                            total_customers }} total</span>
                     </div>
                     <div style="background: var(--surface-2); border-radius: 2px; height: 8px; overflow: hidden;">
                         <div style="display: flex; height: 100%;">
-                            <div style="width: {{ new_pct }}%; background: var(--gold); transition: width 0.7s;" title="New: {{ new_pct }}% ({{ new_cust }})"></div>
-                            <div style="width: {{ repeat_pct }}%; background: var(--success); transition: width 0.7s;" title="Repeat: {{ repeat_pct }}% ({{ repeat_cust }})"></div>
+                            <div style="width: {{ new_pct }}%; background: var(--gold); transition: width 0.7s;"
+                                title="New: {{ new_pct }}% ({{ new_cust }})"></div>
+                            <div style="width: {{ repeat_pct }}%; background: var(--success); transition: width 0.7s;"
+                                title="Repeat: {{ repeat_pct }}% ({{ repeat_cust }})"></div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mt-2" style="font-size: 0.68rem; font-family: 'Inter';">
-                        <span style="color: var(--gold);">— New: <strong style="color: var(--gold-light);">{{ new_pct }}%</strong></span>
+                        <span style="color: var(--gold);">— New: <strong style="color: var(--gold-light);">{{ new_pct
+                                }}%</strong></span>
                         <span style="color: var(--success);">— Repeat: <strong>{{ repeat_pct }}%</strong></span>
                     </div>
                 </div>
@@ -192,11 +221,17 @@
                     {% for s in order_status_breakdown %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-family: 'Inter'; font-weight: 500;">{{ s.label }}</span>
-                            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text); font-family: 'Oswald'; letter-spacing: 0.05em;">{{ s.count }}</span>
+                            <span
+                                style="font-size: 0.75rem; color: var(--text-secondary); font-family: 'Inter'; font-weight: 500;">{{
+                                s.label }}</span>
+                            <span
+                                style="font-size: 0.75rem; font-weight: 700; color: var(--text); font-family: 'Oswald'; letter-spacing: 0.05em;">{{
+                                s.count }}</span>
                         </div>
                         <div style="background: var(--surface-2); border-radius: 2px; height: 4px; overflow: hidden;">
-                            <div style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; transition: width 0.7s;"></div>
+                            <div
+                                style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; transition: width 0.7s;">
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -234,7 +269,9 @@
                         <tbody>
                             {% for signal in demand_signals %}
                             <tr>
-                                <td class="ps-3" style="font-weight: 600;">{{ signal.name }} <span style="color: var(--text-tertiary); font-weight: 400;">({{ signal.size }})</span></td>
+                                <td class="ps-3" style="font-weight: 600;">{{ signal.name }} <span
+                                        style="color: var(--text-tertiary); font-weight: 400;">({{ signal.size
+                                        }})</span></td>
                                 <td style="color: var(--text-secondary);">{{ signal.velocity }} u</td>
                                 <td style="font-weight: 600;">{{ signal.stock }}</td>
                                 <td style="color: var(--text-secondary);">{{ signal.days_left }}d</td>
@@ -244,7 +281,9 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center py-4" style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No demand projections yet.</td>
+                                <td colspan="5" class="text-center py-4"
+                                    style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No
+                                    demand projections yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -263,17 +302,24 @@
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item" style="background: var(--surface-2); font-family: 'Inter'; font-size: 0.58rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.15em; padding: 0.6rem 1.25rem;">Unsold in last 30 days</li>
+                    <li class="list-group-item"
+                        style="background: var(--surface-2); font-family: 'Inter'; font-size: 0.58rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.15em; padding: 0.6rem 1.25rem;">
+                        Unsold in last 30 days</li>
                     {% for item in dead_stock_top %}
                     <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
                         <div>
-                            <div style="font-weight: 600; font-size: 0.83rem;">{{ item.name }} <span style="color: var(--text-tertiary);">({{ item.size }})</span></div>
-                            <div style="font-size: 0.7rem; color: var(--text-tertiary); font-family: 'Inter';">{{ item.stock }} units</div>
+                            <div style="font-weight: 600; font-size: 0.83rem;">{{ item.name }} <span
+                                    style="color: var(--text-tertiary);">({{ item.size }})</span></div>
+                            <div style="font-size: 0.7rem; color: var(--text-tertiary); font-family: 'Inter';">{{
+                                item.stock }} units</div>
                         </div>
-                        <span style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--gold);">Rs. {{ "%.0f"|format(item.value) }}</span>
+                        <span
+                            style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--gold);">Rs.
+                            {{ "%.0f"|format(item.value) }}</span>
                     </li>
                     {% else %}
-                    <li class="list-group-item text-center py-4" style="color: var(--success); font-size: 0.78rem; font-style: italic;">
+                    <li class="list-group-item text-center py-4"
+                        style="color: var(--success); font-size: 0.78rem; font-style: italic;">
                         No dead stock — excellent turnover.
                     </li>
                     {% endfor %}
@@ -288,19 +334,27 @@
             <div class="card-header">Peak Activity (24h)</div>
             <div class="card-body d-flex flex-column justify-content-between">
                 <div>
-                    <p style="font-size: 0.7rem; color: var(--text-tertiary); font-style: italic; margin-bottom: 0.75rem;">Order volume by hour of day</p>
+                    <p
+                        style="font-size: 0.7rem; color: var(--text-tertiary); font-style: italic; margin-bottom: 0.75rem;">
+                        Order volume by hour of day</p>
                     <div class="d-flex align-items-end gap-1 justify-content-between" style="height: 90px;">
                         {% for h in peak_hours %}
-                        <div class="d-flex flex-column align-items-center flex-fill h-100 justify-content-end" title="{{ h.label }}: {{ h.count }} orders">
-                            <div style="width: 100%; height: {{ h.pct if h.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold-light)); border-radius: 2px 2px 0 0; transition: height 0.6s;"></div>
+                        <div class="d-flex flex-column align-items-center flex-fill h-100 justify-content-end"
+                            title="{{ h.label }}: {{ h.count }} orders">
+                            <div
+                                style="width: 100%; height: {{ h.pct if h.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold-light)); border-radius: 2px 2px 0 0; transition: height 0.6s;">
+                            </div>
                             {% if h.hour in ['00', '06', '12', '18'] %}
-                            <span style="font-size: 0.52rem; color: var(--text-tertiary); margin-top: 3px; font-family: 'Inter';">{{ h.label }}</span>
+                            <span
+                                style="font-size: 0.52rem; color: var(--text-tertiary); margin-top: 3px; font-family: 'Inter';">{{
+                                h.label }}</span>
                             {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-                <div style="border-top: 1px solid var(--line-soft); padding-top: 0.75rem; margin-top: 0.75rem; font-size: 0.68rem; color: var(--text-tertiary); font-style: italic;">
+                <div
+                    style="border-top: 1px solid var(--line-soft); padding-top: 0.75rem; margin-top: 0.75rem; font-size: 0.68rem; color: var(--text-tertiary); font-style: italic;">
                     Schedule staff &amp; ads during peak waves.
                 </div>
             </div>
@@ -316,18 +370,22 @@
             <ul class="list-group list-group-flush">
                 {% for item in best_sellers %}
                 <li class="list-group-item d-flex align-items-center gap-3" style="padding: 0.9rem 1.25rem;">
-                    <span style="font-family: 'Oswald'; font-size: 0.85rem; font-weight: 600; color: var(--gold); width: 18px; text-align: center;">{{ loop.index }}</span>
+                    <span
+                        style="font-family: 'Oswald'; font-size: 0.85rem; font-weight: 600; color: var(--gold); width: 18px; text-align: center;">{{
+                        loop.index }}</span>
                     {% if item.image %}
                     <img src="{{ url_for('static', filename='uploads/' + item.image) }}"
-                         style="width: 38px; height: 38px; object-fit: cover; border-radius: var(--r-sm); flex-shrink: 0; border: 1px solid var(--line);">
+                        style="width: 38px; height: 38px; object-fit: cover; border-radius: var(--r-sm); flex-shrink: 0; border: 1px solid var(--line);">
                     {% else %}
-                    <span style="width: 38px; height: 38px; background: var(--surface-2); border-radius: var(--r-sm); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>
+                    <span
+                        style="width: 38px; height: 38px; background: var(--surface-2); border-radius: var(--r-sm); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>
                     {% endif %}
                     <span style="flex: 1; font-weight: 500; font-size: 0.83rem;">{{ item.name }}</span>
                     <span class="badge bg-gold">{{ item.qty }} sold</span>
                 </li>
                 {% else %}
-                <li class="list-group-item text-center py-4" style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No sales yet.</li>
+                <li class="list-group-item text-center py-4"
+                    style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No sales yet.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -338,15 +396,19 @@
             <div class="card-header">Top Customers</div>
             <ul class="list-group list-group-flush">
                 {% for c in top_customers %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" style="padding: 0.9rem 1.25rem;">
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="padding: 0.9rem 1.25rem;">
                     <div>
                         <div style="font-weight: 600; font-size: 0.85rem;">{{ c.name }}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-tertiary); font-style: italic;">{{ c.orders }} order{{ 's' if c.orders != 1 else '' }}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-tertiary); font-style: italic;">{{ c.orders }}
+                            order{{ 's' if c.orders != 1 else '' }}</div>
                     </div>
-                    <span style="font-family: 'Oswald'; font-size: 0.95rem; font-weight: 600; color: var(--gold);">Rs. {{ "%.0f"|format(c.spent) }}</span>
+                    <span style="font-family: 'Oswald'; font-size: 0.95rem; font-weight: 600; color: var(--gold);">Rs.
+                        {{ "%.0f"|format(c.spent) }}</span>
                 </li>
                 {% else %}
-                <li class="list-group-item text-center py-4" style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No customers yet.</li>
+                <li class="list-group-item text-center py-4"
+                    style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No customers yet.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -377,7 +439,9 @@
             <tbody>
                 {% for order in orders %}
                 <tr>
-                    <td><span style="font-family: 'Oswald'; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;">#{{ order.id }}</span></td>
+                    <td><span
+                            style="font-family: 'Oswald'; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;">#{{
+                            order.id }}</span></td>
                     <td style="font-weight: 600;">{{ order.customer_name }}</td>
                     <td>
                         <ul class="list-unstyled mb-0">
@@ -385,16 +449,19 @@
                             <li class="d-flex align-items-center gap-2 mb-1">
                                 {% if item.product and item.product.image %}
                                 <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}"
-                                     style="width: 26px; height: 26px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--line-soft);">
+                                    style="width: 26px; height: 26px; object-fit: cover; border-radius: 4px; flex-shrink: 0; border: 1px solid var(--line-soft);">
                                 {% else %}
-                                <span style="width: 26px; height: 26px; background: var(--surface-2); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border: 1px solid var(--line-soft);">👗</span>
+                                <span
+                                    style="width: 26px; height: 26px; background: var(--surface-2); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border: 1px solid var(--line-soft);">👗</span>
                                 {% endif %}
-                                <span style="font-size: 0.78rem; color: var(--text-secondary);">{{ item.product_name }} <strong style="color: var(--text-tertiary);">×{{ item.quantity }}</strong></span>
+                                <span style="font-size: 0.78rem; color: var(--text-secondary);">{{ item.product_name }}
+                                    <strong style="color: var(--text-tertiary);">×{{ item.quantity }}</strong></span>
                             </li>
                             {% endfor %}
                         </ul>
                     </td>
-                    <td style="font-family: 'Oswald'; font-weight: 600; color: var(--text); letter-spacing: 0.02em;">Rs. {{ order.total_amount }}</td>
+                    <td style="font-family: 'Oswald'; font-weight: 600; color: var(--text); letter-spacing: 0.02em;">Rs.
+                        {{ order.total_amount }}</td>
                     <td>
                         {% if order.status == 'Delivered' %}
                         <span class="badge bg-success">{{ order.status }}</span>
@@ -426,8 +493,10 @@
                     <div class="card-body">
                         <div class="stat-label mb-2">Add New Capital</div>
                         <form action="/add_investment" method="POST" class="d-flex gap-2 flex-wrap">
-                            <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount (Rs)" required style="min-width: 140px; flex: 1;">
-                            <input type="text" name="note" class="form-control" placeholder="Source (e.g. Loan, Savings)" style="min-width: 180px; flex: 2;">
+                            <input type="number" step="0.01" name="amount" class="form-control"
+                                placeholder="Amount (Rs)" required style="min-width: 140px; flex: 1;">
+                            <input type="text" name="note" class="form-control"
+                                placeholder="Source (e.g. Loan, Savings)" style="min-width: 180px; flex: 2;">
                             <button type="submit" class="btn btn-success">Add</button>
                         </form>
                     </div>
@@ -446,13 +515,18 @@
                         <tbody>
                             {% for inv in investments %}
                             <tr>
-                                <td style="color: var(--text-secondary); font-size: 0.78rem;">{{ inv.date.strftime('%Y-%m-%d') }}</td>
+                                <td style="color: var(--text-secondary); font-size: 0.78rem;">{{
+                                    inv.date.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ inv.note }}</td>
-                                <td style="font-family: 'Oswald'; font-weight: 600; color: var(--gold);">Rs. {{ inv.amount }}</td>
+                                <td style="font-family: 'Oswald'; font-weight: 600; color: var(--gold);">Rs. {{
+                                    inv.amount }}</td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <a href="/edit_investment/{{ inv.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
-                                        <a href="/delete_investment/{{ inv.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this record? This will reduce your Cash in Hand.')"><i class="bi bi-trash"></i></a>
+                                        <a href="/edit_investment/{{ inv.id }}"
+                                            class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                                        <a href="/delete_investment/{{ inv.id }}" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Delete this record? This will reduce your Cash in Hand.')"><i
+                                                class="bi bi-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
@@ -466,34 +540,42 @@
 </div>
 
 <style>
-.trend-btn {
-    border: none; background: transparent;
-    color: var(--text-tertiary);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.62rem; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 0.28rem 0.65rem;
-    border-radius: 4px; cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-}
-.trend-btn.active-trend-btn {
-    background: var(--surface-4);
-    color: var(--gold);
-}
-.trend-bar { transition: height 0.5s cubic-bezier(0.25, 0.1, 0.25, 1); }
+    .trend-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.3rem 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .trend-btn.active-trend-btn {
+        background: var(--gold-tint);
+        color: var(--gold);
+    }
+
+    .trend-bar {
+        transition: height 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
 </style>
 
 <script>
-function switchTrend(type) {
-    document.querySelectorAll('.trend-chart').forEach(el => {
-        el.classList.add('d-none');
-        el.classList.remove('d-flex');
-    });
-    const chart = document.getElementById('trend-' + type);
-    if (chart) { chart.classList.remove('d-none'); chart.classList.add('d-flex'); }
-    ['daily','weekly','monthly'].forEach(b => {
-        document.getElementById('btn-' + b).classList.toggle('active-trend-btn', b === type);
-    });
-}
+    function switchTrend(type) {
+        document.querySelectorAll('.trend-chart').forEach(el => {
+            el.classList.add('d-none');
+            el.classList.remove('d-flex');
+        });
+        const chart = document.getElementById('trend-' + type);
+        if (chart) { chart.classList.remove('d-none'); chart.classList.add('d-flex'); }
+        ['daily', 'weekly', 'monthly'].forEach(b => {
+            document.getElementById('btn-' + b).classList.toggle('active-trend-btn', b === type);
+        });
+    }
 </script>
 {% endblock %}

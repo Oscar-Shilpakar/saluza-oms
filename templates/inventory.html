@@ -2,14 +2,15 @@
 {% block content %}
 
 {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show mb-4" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    {% endfor %}
-  {% endif %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show mb-4"
+    role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
 {% endwith %}
 
 <div class="page-header">
@@ -44,35 +45,43 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Base SKU <span style="color: var(--text-tertiary); font-weight: 400; text-transform: none; font-size: 0.7rem;">(optional)</span></label>
+                        <label class="form-label">Base SKU <span
+                                style="color: var(--text-tertiary); font-weight: 400; text-transform: none; font-size: 0.7rem;">(optional)</span></label>
                         <input type="text" name="sku" class="form-control" placeholder="e.g. TShirt-Blue">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Product Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Classic White Tee" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Classic White Tee"
+                            required>
                     </div>
 
                     <!-- Sizes & Stocks -->
                     <div class="mb-3">
                         <label class="form-label">Sizes &amp; Stocks</label>
                         <div class="d-flex gap-1 flex-wrap mb-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="applyPreset('letters')">M – XXXL</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="applyPreset('numbers')">38 – 46</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSizes()">Clear</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="applyPreset('letters')">M – XXXL</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="applyPreset('numbers')">38 – 46</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="clearSizes()">Clear</button>
                         </div>
                         <div class="input-group input-group-sm mb-2">
                             <input type="text" id="customSizeInput" class="form-control" placeholder="Custom size…">
                             <button class="btn btn-secondary" type="button" onclick="addCustomSize()">Add</button>
                         </div>
-                        <div id="sizesContainer" style="background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 0.6rem; max-height: 180px; overflow-y: auto;"></div>
+                        <div id="sizesContainer"
+                            style="background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 0.6rem; max-height: 180px; overflow-y: auto;">
+                        </div>
                     </div>
 
                     <!-- Price Row -->
                     <div class="row g-2 mb-3">
                         <div class="col-4">
                             <label class="form-label">Cost</label>
-                            <input type="number" name="cost_price" id="costPriceInput" class="form-control" placeholder="Rs." step="0.01" required>
+                            <input type="number" name="cost_price" id="costPriceInput" class="form-control"
+                                placeholder="Rs." step="0.01" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label">Margin %</label>
@@ -80,7 +89,8 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label">Price</label>
-                            <input type="number" name="price" id="sellingPriceInput" class="form-control" placeholder="Rs." step="0.01" required>
+                            <input type="number" name="price" id="sellingPriceInput" class="form-control"
+                                placeholder="Rs." step="0.01" required>
                         </div>
                     </div>
 
@@ -99,20 +109,24 @@
                 <span>Product Catalog</span>
                 <span class="badge bg-gold" id="productCountBadge">{{ products | length }} items</span>
             </div>
-            
+
             <!-- FILTER & SORT TOOLBAR -->
-            <div style="padding: 0.85rem 1.25rem; background: var(--surface-2); border-bottom: 1px solid var(--line-soft);">
+            <div
+                style="padding: 0.85rem 1.25rem; background: var(--surface-2); border-bottom: 1px solid var(--line-soft);">
                 <div class="row g-2 align-items-center">
                     <div class="col-sm-7">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" id="inventorySearch" class="form-control" placeholder="Search by product name or SKU..." onkeyup="filterAndSortInventory()">
+                            <input type="text" id="inventorySearch" class="form-control"
+                                placeholder="Search by product name or SKU..." onkeyup="filterAndSortInventory()">
                         </div>
                     </div>
                     <div class="col-sm-5">
                         <div class="d-flex align-items-center gap-2">
-                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
-                            <select id="inventorySort" class="form-select form-select-sm" onchange="filterAndSortInventory()">
+                            <span
+                                style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
+                            <select id="inventorySort" class="form-select form-select-sm"
+                                onchange="filterAndSortInventory()">
                                 <option value="newest" selected>🆕 Date Added: Newest First</option>
                                 <option value="oldest">📜 Date Added: Oldest First</option>
                                 <option value="name_asc">🔤 Name: A to Z</option>
@@ -142,45 +156,53 @@
                         </thead>
                         <tbody id="inventoryTableBody">
                             {% for p in products %}
-                            <tr class="inventory-row"
-                                data-id="{{ p.id }}"
-                                data-name="{{ p.name }}"
-                                data-sku="{{ p.sku if p.sku else '' }}"
-                                data-price="{{ p.price }}"
-                                data-cost="{{ p.cost_price }}"
-                                data-stock="{{ p.stock }}">
+                            <tr class="inventory-row" data-id="{{ p.id }}" data-name="{{ p.name }}"
+                                data-sku="{{ p.sku if p.sku else '' }}" data-price="{{ p.price }}"
+                                data-cost="{{ p.cost_price }}" data-stock="{{ p.stock }}">
                                 <td>
                                     {% if p.image %}
-                                    <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="42" height="42"
-                                         style="object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line-soft);">
+                                    <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="42"
+                                        height="42"
+                                        style="object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line-soft);">
                                     {% else %}
-                                    <span style="width: 42px; height: 42px; background: var(--surface-2); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>
+                                    <span
+                                        style="width: 42px; height: 42px; background: var(--surface-2); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; font-family: 'Inter';">{{ p.sku if p.sku else '—' }}</div>
-                                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">{{ p.name }}</div>
-                                    <div style="font-size: 0.7rem; color: var(--text-tertiary);">Size: {{ p.size }}</div>
+                                    <div
+                                        style="font-size: 0.68rem; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; font-family: 'Inter';">
+                                        {{ p.sku if p.sku else '—' }}</div>
+                                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">{{ p.name }}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: var(--text-tertiary);">Size: {{ p.size }}
+                                    </div>
                                 </td>
-                                <td style="color: var(--text-secondary); font-size: 0.82rem;">Rs. {{ p.cost_price }}</td>
-                                <td style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--text);">Rs. {{ p.price }}</td>
+                                <td style="color: var(--text-secondary); font-size: 0.82rem;">Rs. {{ p.cost_price }}
+                                </td>
+                                <td
+                                    style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--text);">
+                                    Rs. {{ p.price }}</td>
                                 <td>
-                                    {% if p.stock < 5 %}
-                                    <span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--danger);">{{ p.stock }}</span>
-                                    <span class="badge bg-danger ms-1">Low</span>
-                                    {% else %}
-                                    <span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--success);">{{ p.stock }}</span>
-                                    {% endif %}
+                                    {% if p.stock < 5 %} <span
+                                        style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--danger);">
+                                        {{ p.stock }}</span>
+                                        <span class="badge bg-danger ms-1">Low</span>
+                                        {% else %}
+                                        <span
+                                            style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--success);">{{
+                                            p.stock }}</span>
+                                        {% endif %}
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary"
+                                            title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="/delete_product/{{ p.id }}"
-                                           class="btn btn-sm btn-outline-danger"
-                                           onclick="return confirm('Are you sure? This cannot be undone.')"
-                                           title="Delete">
+                                        <a href="/delete_product/{{ p.id }}" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Are you sure? This cannot be undone.')"
+                                            title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
@@ -229,7 +251,7 @@
                 </div>
                 <div class="d-flex align-items-center gap-1">
                     <span style="font-size:0.68rem;color:var(--text-tertiary);letter-spacing:0.08em;text-transform:uppercase;">Qty</span>
-                    <input type="number" name="stock_${s.size}" class="form-control form-control-sm text-center" style="width:62px;" value="${s.stock}" min="0" onchange="updateStock(${i},this.value)" ${s.checked?'':'disabled'}>
+                    <input type="number" name="stock_${s.size}" class="form-control form-control-sm text-center" style="width:62px;" value="${s.stock}" min="0" onchange="updateStock(${i},this.value)" ${s.checked ? '' : 'disabled'}>
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSize(${i})" style="padding:0.18rem 0.42rem;">×</button>
                 </div>
             </div>`).join('');
@@ -239,15 +261,15 @@
     function removeSize(i) { sizes.splice(i, 1); renderSizes(); }
     function applyPreset(t) {
         sizes = t === 'letters'
-            ? ['M','L','XL','XXL','XXXL'].map(s => ({ size:s, checked:true, stock:1 }))
-            : Array.from({length:9}, (_,k) => ({ size:(38+k).toString(), checked:true, stock:1 }));
+            ? ['M', 'L', 'XL', 'XXL', 'XXXL'].map(s => ({ size: s, checked: true, stock: 1 }))
+            : Array.from({ length: 9 }, (_, k) => ({ size: (38 + k).toString(), checked: true, stock: 1 }));
         renderSizes();
     }
     function clearSizes() { sizes = []; renderSizes(); }
     function addCustomSize() {
         const inp = document.getElementById('customSizeInput');
         const val = inp.value.trim().toUpperCase();
-        if (val && !sizes.some(s => s.size === val)) { sizes.push({ size:val, checked:true, stock:1 }); inp.value=''; renderSizes(); }
+        if (val && !sizes.some(s => s.size === val)) { sizes.push({ size: val, checked: true, stock: 1 }); inp.value = ''; renderSizes(); }
     }
     function validateForm(e) {
         if (!document.querySelectorAll('input[name="selected_sizes"]:checked').length) {
@@ -267,7 +289,7 @@
         let visibleCount = 0;
         rows.forEach(row => {
             const name = row.getAttribute('data-name').toLowerCase();
-            const sku  = row.getAttribute('data-sku').toLowerCase();
+            const sku = row.getAttribute('data-sku').toLowerCase();
             const matches = name.includes(query) || sku.includes(query);
             row.style.display = matches ? '' : 'none';
             if (matches) visibleCount++;
@@ -278,24 +300,24 @@
 
         // 2. Sort rows
         rows.sort((a, b) => {
-            const idA    = parseInt(a.getAttribute('data-id'));
-            const idB    = parseInt(b.getAttribute('data-id'));
-            const nameA  = a.getAttribute('data-name').toLowerCase();
-            const nameB  = b.getAttribute('data-name').toLowerCase();
+            const idA = parseInt(a.getAttribute('data-id'));
+            const idB = parseInt(b.getAttribute('data-id'));
+            const nameA = a.getAttribute('data-name').toLowerCase();
+            const nameB = b.getAttribute('data-name').toLowerCase();
             const priceA = parseFloat(a.getAttribute('data-price'));
             const priceB = parseFloat(b.getAttribute('data-price'));
             const stockA = parseInt(a.getAttribute('data-stock'));
             const stockB = parseInt(b.getAttribute('data-stock'));
 
             switch (sortValue) {
-                case 'newest':    return idB - idA; // Highest ID = newest
-                case 'oldest':    return idA - idB; // Lowest ID = oldest
-                case 'name_asc':  return nameA.localeCompare(nameB);
+                case 'newest': return idB - idA; // Highest ID = newest
+                case 'oldest': return idA - idB; // Lowest ID = oldest
+                case 'name_asc': return nameA.localeCompare(nameB);
                 case 'name_desc': return nameB.localeCompare(nameA);
-                case 'price_desc':return priceB - priceA;
+                case 'price_desc': return priceB - priceA;
                 case 'price_asc': return priceA - priceB;
                 case 'stock_asc': return stockA - stockB;
-                default:          return idB - idA;
+                default: return idB - idA;
             }
         });
 

@@ -24,13 +24,16 @@
                     {% if p.image %}
                     <div class="text-center mb-4">
                         <img src="{{ url_for('static', filename='uploads/' + p.image) }}"
-                             style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line);">
-                        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.4rem; font-style: italic;">Current Product Image</div>
+                            style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line);">
+                        <div
+                            style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.4rem; font-style: italic;">
+                            Current Product Image</div>
                     </div>
                     {% endif %}
 
                     <div class="mb-3">
-                        <label class="form-label">Change Image <span style="text-transform: none; font-weight: 400; color: var(--text-tertiary);">(optional)</span></label>
+                        <label class="form-label">Change Image <span
+                                style="text-transform: none; font-weight: 400; color: var(--text-tertiary);">(optional)</span></label>
                         <input type="file" name="image" class="form-control" accept="image/*">
                     </div>
 
@@ -53,7 +56,8 @@
                     <div class="row mb-3 g-3">
                         <div class="col-4">
                             <label class="form-label">Cost Price</label>
-                            <input type="number" name="cost_price" id="costPriceInput" class="form-control" step="0.01" value="{{ p.cost_price }}" required>
+                            <input type="number" name="cost_price" id="costPriceInput" class="form-control" step="0.01"
+                                value="{{ p.cost_price }}" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label">Margin %</label>
@@ -61,7 +65,8 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label">Selling Price</label>
-                            <input type="number" name="price" id="sellingPriceInput" class="form-control" step="0.01" value="{{ p.price }}" required>
+                            <input type="number" name="price" id="sellingPriceInput" class="form-control" step="0.01"
+                                value="{{ p.price }}" required>
                         </div>
                     </div>
 
