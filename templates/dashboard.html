@@ -44,7 +44,7 @@
             <div class="stat-gold-line" style="background: var(--danger);"></div>
             <div class="stat-value">Rs. {{ expenses }}</div>
             <div class="stat-sub">
-                Bills + COGS &nbsp;·&nbsp;
+                Operating Expenses &nbsp;·&nbsp;
                 <a href="/expenses" style="color: var(--gold); font-size: 0.68rem;">View →</a>
             </div>
         </div>
@@ -52,9 +52,9 @@
     <div class="col-md-3 col-6">
         <div class="stat-card">
             <div class="stat-label">Net Profit</div>
-            <div class="stat-gold-line" style="background: var(--success);"></div>
-            <div class="stat-value" style="color: var(--success);">Rs. {{ net_profit }}</div>
-            <div class="stat-sub">From Sales Only</div>
+            <div class="stat-gold-line" style="background: {{ 'var(--danger)' if net_profit < 0 else 'var(--success)' }};"></div>
+            <div class="stat-value" style="color: {{ 'var(--danger)' if net_profit < 0 else 'var(--success)' }};">Rs. {{ net_profit }}</div>
+            <div class="stat-sub">Sold Cost &amp; Expenses Deducted</div>
         </div>
     </div>
     <div class="col-md-3 col-6">
@@ -94,9 +94,9 @@
     <div class="col-md-3 col-6">
         <div class="stat-card">
             <div class="stat-label">Profit Margin</div>
-            <div class="stat-gold-line" style="background: var(--warning);"></div>
-            <div class="stat-value" style="color: var(--warning);">{{ "%.1f"|format(profit_margin_pct) }}%</div>
-            <div class="stat-sub">Of gross revenue</div>
+            <div class="stat-gold-line" style="background: {{ 'var(--danger)' if profit_margin_pct < 0 else 'var(--warning)' }};"></div>
+            <div class="stat-value" style="color: {{ 'var(--danger)' if profit_margin_pct < 0 else 'var(--warning)' }};">{{ "%.1f"|format(profit_margin_pct) }}%</div>
+            <div class="stat-sub">Sold Cost &amp; Expenses Deducted</div>
         </div>
     </div>
     <div class="col-md-3 col-6">
@@ -112,16 +112,39 @@
 <!-- ── CHARTS ROW ── -->
 <div class="row g-3 mb-4">
     <!-- Revenue Trend -->
-    <div class="col-lg-7">
+    <div class="col-12">
         <div class="card h-100">
-            <div class="card-header" style="justify-content: space-between;">
-                <span>Revenue Trend</span>
-                <div
-                    style="display: flex; gap: 2px; padding: 2px; background: var(--bg-2); border-radius: 6px; border: 1px solid var(--line-soft);">
-                    <button class="trend-btn active-trend-btn" id="btn-daily"
-                        onclick="switchTrend('daily')">Daily</button>
-                    <button class="trend-btn" id="btn-weekly" onclick="switchTrend('weekly')">Weekly</button>
-                    <button class="trend-btn" id="btn-monthly" onclick="switchTrend('monthly')">Monthly</button>
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span>Revenue Trend</span>
+                    <span id="trend-summary-badge" class="badge d-none"
+                        style="background: var(--gold-tint); color: var(--gold); border: 1px solid var(--line); font-size: 0.72rem; font-family: 'Oswald', sans-serif; letter-spacing: 0.04em;">
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div style="display: flex; gap: 2px; padding: 2px; background: var(--bg-2); border-radius: 6px; border: 1px solid var(--line-soft);">
+                        <button class="trend-btn active-trend-btn" id="btn-daily"
+                            onclick="switchTrend('daily')">7 Days</button>
+                        <button class="trend-btn" id="btn-30d"
+                            onclick="switchTrend('30d')">30 Days</button>
+                        <button class="trend-btn" id="btn-weekly"
+                            onclick="switchTrend('weekly')">Weekly</button>
+                        <button class="trend-btn" id="btn-monthly"
+                            onclick="switchTrend('monthly')">Monthly</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-1"
+                        style="background: var(--bg-2); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line-soft);">
+                        <i class="bi bi-calendar3" style="font-size: 0.75rem; color: var(--gold);"></i>
+                        <input type="date" id="trend-start-date" class="form-control form-control-sm trend-date-input"
+                            value="{{ trend_start_default }}" title="Start Date">
+                        <span style="font-size: 0.7rem; color: var(--text-tertiary);">to</span>
+                        <input type="date" id="trend-end-date" class="form-control form-control-sm trend-date-input"
+                            value="{{ trend_end_default }}" title="End Date">
+                        <button class="trend-btn" id="btn-custom" onclick="applyCustomDateRange()"
+                            style="border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.7rem; font-weight: 600;">
+                            Apply
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -186,181 +209,45 @@
                         style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No monthly data.</p>
                     {% endfor %}
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cohorts & Status -->
-    <div class="col-lg-5">
-        <div class="card h-100">
-            <div class="card-header">Customer Cohorts &amp; Status</div>
-            <div class="card-body d-flex flex-column gap-4">
-                <div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="stat-label mb-0">New vs. Repeat Customers</span>
-                        <span style="font-size: 0.68rem; color: var(--text-tertiary); font-family: 'Inter';">{{
-                            total_customers }} total</span>
-                    </div>
-                    <div style="background: var(--surface-2); border-radius: 2px; height: 8px; overflow: hidden;">
-                        <div style="display: flex; height: 100%;">
-                            <div style="width: {{ new_pct }}%; background: var(--gold); transition: width 0.7s;"
-                                title="New: {{ new_pct }}% ({{ new_cust }})"></div>
-                            <div style="width: {{ repeat_pct }}%; background: var(--success); transition: width 0.7s;"
-                                title="Repeat: {{ repeat_pct }}% ({{ repeat_cust }})"></div>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-2" style="font-size: 0.68rem; font-family: 'Inter';">
-                        <span style="color: var(--gold);">— New: <strong style="color: var(--gold-light);">{{ new_pct
-                                }}%</strong></span>
-                        <span style="color: var(--success);">— Repeat: <strong>{{ repeat_pct }}%</strong></span>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="stat-label mb-2">Order Status Breakdown</div>
-                    {% for s in order_status_breakdown %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span
-                                style="font-size: 0.75rem; color: var(--text-secondary); font-family: 'Inter'; font-weight: 500;">{{
-                                s.label }}</span>
-                            <span
-                                style="font-size: 0.75rem; font-weight: 700; color: var(--text); font-family: 'Oswald'; letter-spacing: 0.05em;">{{
-                                s.count }}</span>
-                        </div>
-                        <div style="background: var(--surface-2); border-radius: 2px; height: 4px; overflow: hidden;">
-                            <div
-                                style="width: {{ s.pct }}%; height: 100%; background: {{ s.color }}; transition: width 0.7s;">
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── INTELLIGENCE ROW ── -->
-<div class="section-divider mb-3">
-    <div class="section-divider-line"></div>
-    <span class="section-divider-text">Intelligence &amp; Forecasting</span>
-</div>
-<div class="row g-3 mb-4">
-    <!-- Demand Signals -->
-    <div class="col-lg-5 col-md-6">
-        <div class="card h-100">
-            <div class="card-header" style="justify-content: space-between;">
-                <span>Demand Forecasting</span>
-                <span class="badge bg-gold">14-Day Velocity</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th class="ps-3">Item</th>
-                                <th>Speed/Wk</th>
-                                <th>Stock</th>
-                                <th>Runout</th>
-                                <th class="pe-3 text-end">Signal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for signal in demand_signals %}
-                            <tr>
-                                <td class="ps-3" style="font-weight: 600;">{{ signal.name }} <span
-                                        style="color: var(--text-tertiary); font-weight: 400;">({{ signal.size
-                                        }})</span></td>
-                                <td style="color: var(--text-secondary);">{{ signal.velocity }} u</td>
-                                <td style="font-weight: 600;">{{ signal.stock }}</td>
-                                <td style="color: var(--text-secondary);">{{ signal.days_left }}d</td>
-                                <td class="pe-3 text-end">
-                                    <span class="badge {{ signal.badge_class }}">{{ signal.status }}</span>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4"
-                                    style="color: var(--text-tertiary); font-style: italic; font-size: 0.78rem;">No
-                                    demand projections yet.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dead Stock -->
-    <div class="col-lg-4 col-md-6">
-        <div class="card h-100">
-            <div class="card-header" style="justify-content: space-between;">
-                <span>Dead Stock</span>
-                <span class="badge bg-danger">Rs. {{ "%.0f"|format(dead_stock_value) }} tied</span>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item"
-                        style="background: var(--surface-2); font-family: 'Inter'; font-size: 0.58rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.15em; padding: 0.6rem 1.25rem;">
-                        Unsold in last 30 days</li>
-                    {% for item in dead_stock_top %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
-                        <div>
-                            <div style="font-weight: 600; font-size: 0.83rem;">{{ item.name }} <span
-                                    style="color: var(--text-tertiary);">({{ item.size }})</span></div>
-                            <div style="font-size: 0.7rem; color: var(--text-tertiary); font-family: 'Inter';">{{
-                                item.stock }} units</div>
+                <!-- 30 Days -->
+                <div id="trend-30d" class="trend-chart d-none align-items-end gap-1" style="height: 160px; overflow-x: auto; padding-bottom: 4px;">
+                    {% for d in thirty_days_revenue %}
+                    <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100"
+                        style="min-width: 16px;"
+                        title="{{ d.date }}: Rs. {{ d.revenue }} / Rs. {{ d.profit }} profit">
+                        {% if d.revenue > 0 and (loop.index0 % 3 == 0 or loop.last) %}
+                        <span
+                            style="color: var(--text-tertiary); font-size: 0.52rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">{{
+                            "%.0f"|format(d.revenue / 1000) }}k</span>
+                        {% else %}
+                        <span style="font-size: 0.52rem; margin-bottom: 4px; visibility: hidden;">0</span>
+                        {% endif %}
+                        <div class="trend-bar"
+                            style="width: 100%; max-width: 20px; height: {{ d.pct if d.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold)); border-radius: 3px 3px 0 0;">
                         </div>
                         <span
-                            style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--gold);">Rs.
-                            {{ "%.0f"|format(item.value) }}</span>
-                    </li>
-                    {% else %}
-                    <li class="list-group-item text-center py-4"
-                        style="color: var(--success); font-size: 0.78rem; font-style: italic;">
-                        No dead stock — excellent turnover.
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- Peak Hours -->
-    <div class="col-lg-3 col-md-12">
-        <div class="card h-100">
-            <div class="card-header">Peak Activity (24h)</div>
-            <div class="card-body d-flex flex-column justify-content-between">
-                <div>
-                    <p
-                        style="font-size: 0.7rem; color: var(--text-tertiary); font-style: italic; margin-bottom: 0.75rem;">
-                        Order volume by hour of day</p>
-                    <div class="d-flex align-items-end gap-1 justify-content-between" style="height: 90px;">
-                        {% for h in peak_hours %}
-                        <div class="d-flex flex-column align-items-center flex-fill h-100 justify-content-end"
-                            title="{{ h.label }}: {{ h.count }} orders">
-                            <div
-                                style="width: 100%; height: {{ h.pct if h.pct > 3 else 3 }}%; background: linear-gradient(to top, var(--gold-muted), var(--gold-light)); border-radius: 2px 2px 0 0; transition: height 0.6s;">
-                            </div>
-                            {% if h.hour in ['00', '06', '12', '18'] %}
-                            <span
-                                style="font-size: 0.52rem; color: var(--text-tertiary); margin-top: 3px; font-family: 'Inter';">{{
-                                h.label }}</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+                            style="color: var(--text-secondary); font-size: 0.58rem; font-weight: 600; margin-top: 6px; white-space: nowrap; font-family: 'Inter', sans-serif;">{{
+                            d.label }}</span>
                     </div>
+                    {% else %}
+                    <p class="text-center w-100 my-auto"
+                        style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No 30-day sales data.</p>
+                    {% endfor %}
                 </div>
-                <div
-                    style="border-top: 1px solid var(--line-soft); padding-top: 0.75rem; margin-top: 0.75rem; font-size: 0.68rem; color: var(--text-tertiary); font-style: italic;">
-                    Schedule staff &amp; ads during peak waves.
+                <!-- Custom Date Range -->
+                <div id="trend-custom" class="trend-chart d-none align-items-end gap-1" style="height: 160px; overflow-x: auto; padding-bottom: 4px;">
+                    <div id="trend-custom-loading" class="d-none align-items-center justify-content-center w-100 h-100">
+                        <span class="spinner-border spinner-border-sm text-warning me-2"></span>
+                        <span style="color: var(--text-tertiary); font-size: 0.8rem;">Loading date range...</span>
+                    </div>
+                    <div id="trend-custom-bars" class="d-flex align-items-end gap-1 w-100 h-100"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+
 
 <!-- ── BEST SELLERS & TOP CUSTOMERS ── -->
 <div class="row g-3 mb-4">
@@ -433,7 +320,6 @@
                     <th>Customer</th>
                     <th>Items</th>
                     <th>Amount</th>
-                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -462,17 +348,6 @@
                     </td>
                     <td style="font-family: 'Oswald'; font-weight: 600; color: var(--text); letter-spacing: 0.02em;">Rs.
                         {{ order.total_amount }}</td>
-                    <td>
-                        {% if order.status == 'Delivered' %}
-                        <span class="badge bg-success">{{ order.status }}</span>
-                        {% elif order.status == 'Shipped' %}
-                        <span class="badge bg-info">{{ order.status }}</span>
-                        {% elif order.status == 'Returned' %}
-                        <span class="badge bg-danger">{{ order.status }}</span>
-                        {% else %}
-                        <span class="badge bg-secondary">{{ order.status }}</span>
-                        {% endif %}
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -545,14 +420,18 @@
         background: transparent;
         color: var(--text-tertiary);
         font-family: 'Inter', sans-serif;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        padding: 0.3rem 0.75rem;
+        padding: 0.3rem 0.65rem;
         border-radius: 4px;
         cursor: pointer;
         transition: background 0.2s, color 0.2s;
+    }
+
+    .trend-btn:hover {
+        color: var(--gold);
     }
 
     .trend-btn.active-trend-btn {
@@ -563,19 +442,138 @@
     .trend-bar {
         transition: height 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
+
+    .trend-date-input {
+        height: 24px !important;
+        padding: 0 4px !important;
+        font-size: 0.72rem !important;
+        width: 110px !important;
+        background: var(--surface) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--line-soft) !important;
+        border-radius: 4px !important;
+    }
+
+    .trend-date-input:focus {
+        border-color: var(--gold) !important;
+        box-shadow: 0 0 0 2px var(--gold-tint) !important;
+    }
 </style>
 
 <script>
+    const trendTypes = ['daily', '30d', 'weekly', 'monthly', 'custom'];
+
     function switchTrend(type) {
         document.querySelectorAll('.trend-chart').forEach(el => {
             el.classList.add('d-none');
             el.classList.remove('d-flex');
         });
         const chart = document.getElementById('trend-' + type);
-        if (chart) { chart.classList.remove('d-none'); chart.classList.add('d-flex'); }
-        ['daily', 'weekly', 'monthly'].forEach(b => {
-            document.getElementById('btn-' + b).classList.toggle('active-trend-btn', b === type);
+        if (chart) { 
+            chart.classList.remove('d-none'); 
+            chart.classList.add('d-flex'); 
+        }
+        
+        trendTypes.forEach(b => {
+            const btn = document.getElementById('btn-' + b);
+            if (btn) btn.classList.toggle('active-trend-btn', b === type);
         });
+
+        const badge = document.getElementById('trend-summary-badge');
+        if (badge && type !== 'custom') {
+            badge.classList.add('d-none');
+        }
+    }
+
+    async function applyCustomDateRange() {
+        const startInput = document.getElementById('trend-start-date');
+        const endInput = document.getElementById('trend-end-date');
+        const startDate = startInput ? startInput.value : '';
+        const endDate = endInput ? endInput.value : '';
+
+        if (!startDate || !endDate) {
+            alert('Please select both a start date and an end date.');
+            return;
+        }
+
+        switchTrend('custom');
+
+        const loading = document.getElementById('trend-custom-loading');
+        const barsContainer = document.getElementById('trend-custom-bars');
+        const badge = document.getElementById('trend-summary-badge');
+
+        if (loading) {
+            loading.classList.remove('d-none');
+            loading.classList.add('d-flex');
+        }
+        if (barsContainer) barsContainer.innerHTML = '';
+        if (badge) badge.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/api/revenue_trend?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`);
+            const data = await res.json();
+
+            if (loading) {
+                loading.classList.add('d-none');
+                loading.classList.remove('d-flex');
+            }
+
+            if (data.error) {
+                if (barsContainer) {
+                    barsContainer.innerHTML = `<p class="text-center w-100 my-auto text-danger" style="font-size: 0.8rem;">${data.error}</p>`;
+                }
+                return;
+            }
+
+            if (!data.items || data.items.length === 0) {
+                if (barsContainer) {
+                    barsContainer.innerHTML = '<p class="text-center w-100 my-auto" style="color: var(--text-tertiary); font-size: 0.8rem; font-style: italic;">No orders found in this date range.</p>';
+                }
+                return;
+            }
+
+            if (badge) {
+                badge.textContent = `Total: Rs. ${Number(data.total_revenue).toLocaleString()} | Profit: Rs. ${Number(data.total_profit).toLocaleString()}`;
+                badge.classList.remove('d-none');
+            }
+
+            const count = data.items.length;
+            const isLong = count > 15;
+            const barMaxWidth = count > 45 ? '14px' : (count > 20 ? '20px' : '26px');
+
+            data.items.forEach((item, idx) => {
+                const col = document.createElement('div');
+                col.className = 'd-flex flex-column align-items-center justify-content-end flex-fill h-100';
+                col.style.minWidth = isLong ? '16px' : '22px';
+                col.title = `${item.date}: Rs. ${item.revenue.toLocaleString()} / Rs. ${item.profit.toLocaleString()} profit`;
+
+                let topHtml = '';
+                if (!isLong) {
+                    topHtml = `<span style="color: var(--text-tertiary); font-size: 0.58rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">${Math.round(item.revenue)}</span>`;
+                } else if (item.revenue > 0 && (idx % 3 === 0 || idx === count - 1)) {
+                    topHtml = `<span style="color: var(--text-tertiary); font-size: 0.52rem; white-space: nowrap; margin-bottom: 4px; font-family: 'Inter', sans-serif;">${Math.round(item.revenue / 1000)}k</span>`;
+                } else {
+                    topHtml = `<span style="font-size: 0.52rem; margin-bottom: 4px; visibility: hidden;">0</span>`;
+                }
+
+                const barH = item.pct > 3 ? item.pct : 3;
+
+                col.innerHTML = `
+                    ${topHtml}
+                    <div class="trend-bar" style="width: 100%; max-width: ${barMaxWidth}; height: ${barH}%; background: linear-gradient(to top, var(--gold-muted), var(--gold)); border-radius: 3px 3px 0 0;"></div>
+                    <span style="color: var(--text-secondary); font-size: 0.58rem; font-weight: 600; margin-top: 6px; white-space: nowrap; font-family: 'Inter', sans-serif;">${item.label}</span>
+                `;
+                barsContainer.appendChild(col);
+            });
+        } catch (err) {
+            if (loading) {
+                loading.classList.add('d-none');
+                loading.classList.remove('d-flex');
+            }
+            if (barsContainer) {
+                barsContainer.innerHTML = '<p class="text-center w-100 my-auto text-danger" style="font-size: 0.8rem;">Failed to load data for this date range.</p>';
+            }
+        }
     }
 </script>
 {% endblock %}

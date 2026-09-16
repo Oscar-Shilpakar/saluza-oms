@@ -25,7 +25,7 @@
                         <th>Customer</th>
                         <th>Items</th>
                         <th>Total</th>
-                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,22 +82,7 @@
                                 {{ order.total_amount }}</span>
                         </td>
                         <td>
-                            <div class="d-flex gap-2 align-items-center flex-wrap">
-                                <form action="/update_status/{{ order.id }}" method="POST">
-                                    <select name="status" class="form-select form-select-sm"
-                                        style="width: 118px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
-                                                   color: {{ 'var(--success)' if order.status == 'Delivered' else ('var(--info)' if order.status == 'Shipped' else ('var(--danger)' if order.status == 'Returned' else 'var(--text-secondary)')) }};"
-                                        onchange="this.form.submit()">
-                                        <option value="Pending" {% if order.status=='Pending' %}selected{% endif %}>
-                                            Pending</option>
-                                        <option value="Shipped" {% if order.status=='Shipped' %}selected{% endif %}>
-                                            Shipped</option>
-                                        <option value="Delivered" {% if order.status=='Delivered' %}selected{% endif %}>
-                                            Delivered</option>
-                                        <option value="Returned" {% if order.status=='Returned' %}selected{% endif %}>
-                                            Returned</option>
-                                    </select>
-                                </form>
+                            <div class="d-flex gap-2 align-items-center">
                                 <a href="/edit_order/{{ order.id }}" class="btn btn-sm btn-outline-warning"
                                     title="Edit Order">
                                     <i class="bi bi-pencil"></i>

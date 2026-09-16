@@ -105,8 +105,9 @@ def dashboard():
     # Cash in Hand: (All Money In) - (All Money Out)
     cash_in_hand = (total_investment + total_sales) - (total_product_spend + manual_expenses)
 
-    # For display
-    net_profit = gross_profit # As you requested previously (Sales Profit only)
+    # Net Profit = Revenue - Cost of Sold Products Only - All Operating Expenses
+    # (Unsold inventory sitting on the shelf is NOT deducted)
+    net_profit = total_sales - cost_of_sold_goods - manual_expenses
     
     recent_orders = Order.query.order_by(Order.date.desc()).limit(5).all()
     investments = Investment.query.order_by(Investment.date.desc()).all()
@@ -114,7 +115,8 @@ def dashboard():
     # --- 4. BUSINESS INSIGHTS ---
     total_orders_count = Order.query.count()
     avg_order_value = (total_sales / total_orders_count) if total_orders_count else 0
-    profit_margin_pct = (gross_profit / total_sales * 100) if total_sales else 0
+    # Profit Margin % = (Revenue - Sold Products Cost - Expenses) / Revenue * 100
+    profit_margin_pct = (net_profit / total_sales * 100) if total_sales else 0
     total_customers = db.session.query(db.func.count(db.distinct(Order.customer_name))).scalar() or 0
 
     # Order status breakdown (how many orders are sitting in each stage)
@@ -196,6 +198,35 @@ def dashboard():
     max_daily_rev = max([d['revenue'] for d in daily_revenue], default=0) or 1
     for d in daily_revenue:
         d['pct'] = round((d['revenue'] / max_daily_rev) * 100, 1)
+
+    # 1b. 30-Day Revenue Trend (last 30 days)
+    thirty_days_ago = now - timedelta(days=29)
+    thirty_start = datetime(thirty_days_ago.year, thirty_days_ago.month, thirty_days_ago.day, 0, 0, 0)
+    thirty_day_rows = db.session.query(
+        db.func.strftime('%Y-%m-%d', Order.date).label('day'),
+        db.func.sum(Order.total_amount).label('revenue'),
+        db.func.sum(Order.profit).label('profit')
+    ).filter(Order.date >= thirty_start).group_by('day').all()
+    
+    thirty_map = {r.day: (r.revenue or 0, r.profit or 0) for r in thirty_day_rows}
+    thirty_days_revenue = []
+    for i in range(29, -1, -1):
+        day_date = now - timedelta(days=i)
+        day_str = day_date.strftime('%Y-%m-%d')
+        rev, prof = thirty_map.get(day_str, (0, 0))
+        thirty_days_revenue.append({
+            'label': day_date.strftime('%d'),
+            'date': day_date.strftime('%b %d'),
+            'revenue': rev,
+            'profit': prof,
+            'pct': 0
+        })
+    max_30d_rev = max([d['revenue'] for d in thirty_days_revenue], default=0) or 1
+    for d in thirty_days_revenue:
+        d['pct'] = round((d['revenue'] / max_30d_rev) * 100, 1)
+
+    trend_start_default = thirty_days_ago.strftime('%Y-%m-%d')
+    trend_end_default = now.strftime('%Y-%m-%d')
 
     # 2. Weekly Revenue Trend (last 8 weeks)
     weekly_revenue = []
@@ -342,6 +373,9 @@ def dashboard():
                            top_customers=top_customers,
                            monthly_revenue=monthly_revenue,
                            daily_revenue=daily_revenue,
+                           thirty_days_revenue=thirty_days_revenue,
+                           trend_start_default=trend_start_default,
+                           trend_end_default=trend_end_default,
                            weekly_revenue=weekly_revenue,
                            new_cust=new_cust,
                            repeat_cust=repeat_cust,
@@ -355,6 +389,82 @@ def dashboard():
                            avg_expense_per_order=avg_expense_per_order,
                            avg_total_cost_per_order=avg_total_cost_per_order,
                            peak_hours=peak_hours)
+
+# --- REVENUE TREND API FOR CUSTOM DATE RANGES ---
+@app.route('/api/revenue_trend')
+def api_revenue_trend():
+    start_str = request.args.get('start_date')
+    end_str = request.args.get('end_date')
+    days_param = request.args.get('days', type=int)
+    
+    now = datetime.utcnow()
+    if days_param:
+        end_date = now
+        start_date = now - timedelta(days=days_param - 1)
+    elif start_str and end_str:
+        try:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Please use YYYY-MM-DD.'}), 400
+    elif start_str:
+        try:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d')
+            end_date = now
+        except ValueError:
+            return jsonify({'error': 'Invalid start date format.'}), 400
+    else:
+        end_date = now
+        start_date = now - timedelta(days=29)
+        
+    start_dt = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0)
+    end_dt = datetime(end_date.year, end_date.month, end_date.day, 23, 59, 59)
+    
+    delta_days = (end_dt.date() - start_dt.date()).days
+    if delta_days < 0:
+        return jsonify({'error': 'Start date must be earlier than or equal to end date.'}), 400
+    if delta_days > 365:
+        delta_days = 365
+        start_dt = end_dt - timedelta(days=365)
+        
+    rows = db.session.query(
+        db.func.strftime('%Y-%m-%d', Order.date).label('day'),
+        db.func.sum(Order.total_amount).label('revenue'),
+        db.func.sum(Order.profit).label('profit')
+    ).filter(Order.date >= start_dt, Order.date <= end_dt).group_by('day').all()
+    
+    row_map = {r.day: (r.revenue or 0, r.profit or 0) for r in rows}
+    
+    items = []
+    total_rev = 0
+    total_prof = 0
+    for i in range(delta_days + 1):
+        day_date = start_dt + timedelta(days=i)
+        day_str = day_date.strftime('%Y-%m-%d')
+        rev, prof = row_map.get(day_str, (0, 0))
+        total_rev += rev
+        total_prof += prof
+        items.append({
+            'day': day_str,
+            'label': day_date.strftime('%b %d') if delta_days <= 10 else day_date.strftime('%d'),
+            'date': day_date.strftime('%b %d, %Y'),
+            'revenue': float(rev),
+            'profit': float(prof),
+            'pct': 0
+        })
+        
+    max_rev = max([it['revenue'] for it in items], default=0) or 1
+    for it in items:
+        it['pct'] = round((it['revenue'] / max_rev) * 100, 1)
+        
+    return jsonify({
+        'items': items,
+        'total_revenue': total_rev,
+        'total_profit': total_prof,
+        'start_date': start_dt.strftime('%Y-%m-%d'),
+        'end_date': end_dt.strftime('%Y-%m-%d'),
+        'count': len(items)
+    })
 
 # --- UPDATED EXPENSES ROUTE ---
 @app.route('/expenses', methods=['GET', 'POST'])
@@ -493,11 +603,13 @@ def export_excel():
     # Summary Table
     summary_data = [
         {"Metric": "Total Sales Revenue", "Value": total_sales},
-        {"Metric": "Total Manual Expenses (Rent/Ads)", "Value": total_manual_expenses},
-        {"Metric": "Value of Unsold Inventory", "Value": total_inventory_value},
-        {"Metric": "Cost of Sold Goods", "Value": sold_cost},
+        {"Metric": "Cost of Sold Goods (Sold Products Only)", "Value": sold_cost},
+        {"Metric": "Total Operating Expenses (Rent/Ads/etc.)", "Value": total_manual_expenses},
+        {"Metric": "NET PROFIT (Revenue - Sold Cost - Expenses)", "Value": total_sales - sold_cost - total_manual_expenses},
+        {"Metric": "PROFIT MARGIN (%)", "Value": round(((total_sales - sold_cost - total_manual_expenses) / total_sales * 100), 2) if total_sales else 0},
+        {"Metric": "Value of Unsold Inventory (On Shelf)", "Value": total_inventory_value},
         {"Metric": "Total Product Investment (Sold + Unsold)", "Value": total_inventory_value + sold_cost},
-        {"Metric": "NET PROFIT (Cash Basis)", "Value": total_sales - (total_manual_expenses + total_inventory_value + sold_cost)}
+        {"Metric": "NET PROFIT (Cash Basis - All Inventory Subtracted)", "Value": total_sales - (total_manual_expenses + total_inventory_value + sold_cost)}
     ]
     pd.DataFrame(summary_data).to_excel(writer, index=False, sheet_name='Financial Summary')
 
