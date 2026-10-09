@@ -37,8 +37,15 @@
                                 order.id }}</span>
                         </td>
                         <td>
-                            <span style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">{{
-                                order.date.strftime('%Y-%m-%d') }}</span>
+                            <div class="d-flex align-items-center gap-1">
+                                <span style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">{{
+                                    order.date.strftime('%Y-%m-%d') if order.date else '' }}</span>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-muted" title="Change Order Date"
+                                    onclick="openOrderDateModal({{ order.id }}, '{{ order.date.strftime('%Y-%m-%d') if order.date else '' }}')"
+                                    style="line-height: 1; text-decoration: none;">
+                                    <i class="bi bi-calendar-event" style="font-size: 0.8rem; color: var(--gold);"></i>
+                                </button>
+                            </div>
                         </td>
                         <td>
                             <div style="font-weight: 600; font-size: 0.85rem;">{{ order.customer_name }}</div>
@@ -101,4 +108,39 @@
         </div>
     </div>
 </div>
+
+<!-- Quick Change Order Date Modal -->
+<div class="modal fade" id="orderDateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);">
+            <div class="modal-header py-2" style="border-bottom: 1px solid var(--line-soft);">
+                <h6 class="modal-title" style="font-size: 0.9rem; font-weight: 600;">Change Order Date</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="orderDateForm" method="POST" action="">
+                <div class="modal-body py-3">
+                    <label class="form-label" style="font-size: 0.75rem; color: var(--text-tertiary);">Select New Date</label>
+                    <input type="date" class="form-control form-control-sm" id="modalOrderDate" name="date" required>
+                </div>
+                <div class="modal-footer py-2" style="border-top: 1px solid var(--line-soft);">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Update Date</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openOrderDateModal(orderId, currentDate) {
+    const modalEl = document.getElementById('orderDateModal');
+    if (modalEl && modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+    document.getElementById('modalOrderDate').value = currentDate;
+    document.getElementById('orderDateForm').action = '/update_order_date/' + orderId;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+</script>
 {% endblock %}

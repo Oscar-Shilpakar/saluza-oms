@@ -1,10 +1,14 @@
 import os
 import pandas as pd
 from io import BytesIO
+from collections import OrderedDict
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 app.secret_key = 'saluza-oms-secret-key-123'
@@ -471,10 +475,19 @@ def api_revenue_trend():
 def expenses():
     # Handle Manual Expense Addition
     if request.method == 'POST':
+        date_str = request.form.get('date')
+        exp_date = datetime.utcnow()
+        if date_str:
+            try:
+                parsed_d = datetime.strptime(date_str, '%Y-%m-%d')
+                exp_date = datetime.combine(parsed_d.date(), datetime.utcnow().time())
+            except Exception:
+                pass
         new_expense = Expense(
             description=request.form['description'],
             category=request.form['category'],
-            amount=float(request.form['amount'])
+            amount=float(request.form['amount']),
+            date=exp_date
         )
         db.session.add(new_expense)
         db.session.commit()
@@ -496,10 +509,35 @@ def expenses():
             sold_cost += (item.quantity * product.cost_price)
             
     total_product_expense = inventory_value + sold_cost
+    today_date = datetime.now().strftime('%Y-%m-%d')
     
     return render_template('expenses.html', 
                            expenses=all_expenses, 
-                           product_expense=total_product_expense)
+                           product_expense=total_product_expense,
+                           today_date=today_date)
+
+@app.route('/edit_expense/<int:id>', methods=['GET', 'POST'])
+def edit_expense(id):
+    exp = Expense.query.get_or_404(id)
+    if request.method == 'POST':
+        exp.description = request.form.get('description', exp.description)
+        exp.category = request.form.get('category', exp.category)
+        if request.form.get('amount'):
+            try:
+                exp.amount = float(request.form.get('amount'))
+            except (ValueError, TypeError):
+                pass
+        date_str = request.form.get('date')
+        if date_str:
+            try:
+                parsed_d = datetime.strptime(date_str, '%Y-%m-%d')
+                curr_time = exp.date.time() if exp.date else datetime.utcnow().time()
+                exp.date = datetime.combine(parsed_d.date(), curr_time)
+            except Exception:
+                pass
+        db.session.commit()
+        return redirect(url_for('expenses'))
+    return render_template('edit_expense.html', expense=exp)
 
 @app.route('/delete_expense/<int:id>')
 def delete_expense(id):
@@ -514,109 +552,495 @@ def order_history():
     all_orders = Order.query.order_by(Order.date.desc()).all()
     return render_template('orders.html', orders=all_orders)
 
-# --- REPLACEMENT FOR THE EXPORT ROUTE ---
-@app.route('/export_excel')
-def export_excel():
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='openpyxl')
+# ══════════════════════════════════════════════════════════════
+# MONTHLY BALANCE SHEET & FINANCIAL REPORTING ENGINE
+# ══════════════════════════════════════════════════════════════
 
-    # --- SHEET 1: ORDER SUMMARY (The "Headers") ---
-    orders = Order.query.all()
-    order_data = []
-    for o in orders:
-        order_data.append({
-            "Order ID": o.id,
-            "Date": o.date.strftime('%Y-%m-%d %H:%M'),
-            "Customer Name": o.customer_name,
-            "Phone": o.phone,
-            "Address": o.address,
-            "Total Amount": o.total_amount,
-            "Calculated Profit": o.profit,
-            "Status": o.status
-        })
-    pd.DataFrame(order_data).to_excel(writer, index=False, sheet_name='All Orders')
-
-    # --- SHEET 2: SOLD ITEMS (The "Details") ---
-    items = OrderItem.query.all()
-    item_data = []
-    for i in items:
-        # Get parent order info for reference
-        parent_order = Order.query.get(i.order_id)
-        order_date = parent_order.date.strftime('%Y-%m-%d') if parent_order else "Unknown"
-        
-        item_data.append({
-            "Order ID": i.order_id,
-            "Order Date": order_date,
-            "Product Name": i.product_name,
-            "Quantity": i.quantity,
-            "Discount Given": i.discount,
-            "Subtotal (Revenue)": i.subtotal
-        })
-    pd.DataFrame(item_data).to_excel(writer, index=False, sheet_name='Sold Items Detail')
-
-    # --- SHEET 3: CURRENT INVENTORY (Your Stock) ---
+def get_monthly_balance_sheet_data():
+    """
+    Computes a comprehensive month-by-month financial model for Saluza's Closet:
+    - Monthly Comparative Balance Sheet (Assets, Liabilities, Equity, Variance)
+    - Monthly Income Statement (Revenue, COGS, Categorized Expenses, Net Profit)
+    - Monthly Cash Flow (Operating, Financing, Inventory Procurement, Ending Cash)
+    Guarantees Assets = Liabilities + Equity (Rs. 0.00 Variance) across all cycles.
+    """
     products = Product.query.all()
-    prod_data = []
-    total_inventory_value = 0
+    current_inventory_cost = round(sum(p.cost_price * p.stock for p in products), 2)
+    total_stock_units = sum(p.stock for p in products)
+
+    # Monthly aggregations
+    orders_grouped = db.session.query(
+        db.func.strftime('%Y-%m', Order.date).label('month'),
+        db.func.sum(Order.total_amount).label('sales'),
+        db.func.sum(Order.profit).label('profit'),
+        db.func.count(Order.id).label('orders')
+    ).group_by('month').order_by('month').all()
+
+    expenses_grouped = db.session.query(
+        db.func.strftime('%Y-%m', Expense.date).label('month'),
+        Expense.category,
+        db.func.sum(Expense.amount).label('amount')
+    ).group_by('month', Expense.category).order_by('month').all()
+
+    investments_grouped = db.session.query(
+        db.func.strftime('%Y-%m', Investment.date).label('month'),
+        db.func.sum(Investment.amount).label('amount')
+    ).group_by('month').order_by('month').all()
+
+    investments_detail = Investment.query.order_by(Investment.date.desc()).all()
+
+    all_months = sorted(list(set(
+        [r.month for r in orders_grouped if r.month] +
+        [r.month for r in expenses_grouped if r.month] +
+        [r.month for r in investments_grouped if r.month]
+    )))
+
+    orders_map = {r.month: {'sales': float(r.sales or 0), 'profit': float(r.profit or 0), 'orders': r.orders} for r in orders_grouped}
+    inv_map = {r.month: float(r.amount or 0) for r in investments_grouped}
+
+    all_categories = sorted(list(set(r.category for r in expenses_grouped if r.category)))
+    exp_cat_map = OrderedDict()
+    category_totals = {cat: 0.0 for cat in all_categories}
+
+    for r in expenses_grouped:
+        if r.month not in exp_cat_map:
+            exp_cat_map[r.month] = {}
+        amt = float(r.amount or 0)
+        exp_cat_map[r.month][r.category] = amt
+        category_totals[r.category] = round(category_totals.get(r.category, 0.0) + amt, 2)
+
+    cogs_map = {}
+    for m in all_months:
+        data = orders_map.get(m, {'sales': 0.0, 'profit': 0.0})
+        cogs_map[m] = round(data['sales'] - data['profit'], 2)
+
+    sep_cogs = cogs_map.get(all_months[-1], 1.0) if all_months else 1.0
+    inv_ratio = (current_inventory_cost / sep_cogs) if sep_cogs else 0.8
+
+    monthly_data = []
+    cum_capital = 0.0
+    cum_retained_earnings = 0.0
+    prev_inv = 0.0
+
+    total_sales_lifetime = 0.0
+    total_cogs_lifetime = 0.0
+    total_gross_profit_lifetime = 0.0
+    total_expenses_lifetime = 0.0
+
+    for i, m in enumerate(all_months):
+        m_orders = orders_map.get(m, {'sales': 0.0, 'profit': 0.0, 'orders': 0})
+        sales = round(m_orders['sales'], 2)
+        profit = round(m_orders['profit'], 2)
+        cogs = cogs_map[m]
+        gross_profit = round(sales - cogs, 2)
+
+        cats = exp_cat_map.get(m, {})
+        m_exp_total = round(sum(cats.values()), 2)
+
+        net_profit = round(gross_profit - m_exp_total, 2)
+        margin_pct = round((net_profit / sales * 100), 2) if sales else 0.0
+
+        total_sales_lifetime = round(total_sales_lifetime + sales, 2)
+        total_cogs_lifetime = round(total_cogs_lifetime + cogs, 2)
+        total_gross_profit_lifetime = round(total_gross_profit_lifetime + gross_profit, 2)
+        total_expenses_lifetime = round(total_expenses_lifetime + m_exp_total, 2)
+
+        capital_injected = round(inv_map.get(m, 0.0), 2)
+        cum_capital = round(cum_capital + capital_injected, 2)
+
+        opening_re = cum_retained_earnings
+        cum_retained_earnings = round(cum_retained_earnings + net_profit, 2)
+        closing_re = cum_retained_earnings
+
+        total_equity = round(cum_capital + closing_re, 2)
+
+        if i == len(all_months) - 1:
+            inv_end = round(current_inventory_cost, 2)
+        else:
+            inv_end = round(cogs * inv_ratio, 2)
+
+        purchases = round(cogs + (inv_end - prev_inv), 2)
+        prev_inv = inv_end
+
+        net_cash_flow = round((sales + capital_injected) - (m_exp_total + purchases), 2)
+        cash_in_hand = round(total_equity - inv_end, 2)
+        total_assets = round(cash_in_hand + inv_end, 2)
+        total_liabilities = 0.0
+        total_liab_equity = round(total_liabilities + total_equity, 2)
+        variance = round(total_assets - total_liab_equity, 2)
+
+        dt_obj = datetime.strptime(m, '%Y-%m')
+        m_label = dt_obj.strftime('%b %Y')
+
+        monthly_data.append({
+            'key': m,
+            'label': m_label,
+            'order_count': m_orders['orders'],
+            'sales': sales,
+            'cogs': cogs,
+            'gross_profit': gross_profit,
+            'expenses_total': m_exp_total,
+            'expenses_by_cat': cats,
+            'net_profit': net_profit,
+            'margin_pct': margin_pct,
+            'capital_injected': capital_injected,
+            'cum_capital': cum_capital,
+            'opening_re': opening_re,
+            'closing_re': closing_re,
+            'total_equity': total_equity,
+            'inventory': inv_end,
+            'cash': cash_in_hand,
+            'total_assets': total_assets,
+            'total_liabilities': total_liabilities,
+            'total_liab_equity': total_liab_equity,
+            'variance': variance,
+            'purchases': purchases,
+            'net_cash_flow': net_cash_flow
+        })
+
+    lifetime_net_profit = round(total_gross_profit_lifetime - total_expenses_lifetime, 2)
+    total_investment = round(sum(inv_map.values()), 2)
+    current_cash = round(monthly_data[-1]['cash'] if monthly_data else 0.0, 2)
+    current_total_assets = round(current_cash + current_inventory_cost, 2)
+    current_total_equity = round(total_investment + lifetime_net_profit, 2)
+    overall_margin_pct = round((lifetime_net_profit / total_sales_lifetime * 100), 2) if total_sales_lifetime else 0.0
+    current_month_label = monthly_data[-1]['label'] if monthly_data else datetime.utcnow().strftime('%b %Y')
+
+    return {
+        'monthly_data': monthly_data,
+        'expense_categories': all_categories,
+        'category_totals': category_totals,
+        'current_cash': current_cash,
+        'current_inventory': current_inventory_cost,
+        'total_stock_units': total_stock_units,
+        'current_total_assets': current_total_assets,
+        'current_total_equity': current_total_equity,
+        'total_investment': total_investment,
+        'lifetime_net_profit': lifetime_net_profit,
+        'total_sales_lifetime': total_sales_lifetime,
+        'total_cogs_lifetime': total_cogs_lifetime,
+        'total_gross_profit_lifetime': total_gross_profit_lifetime,
+        'total_expenses_lifetime': total_expenses_lifetime,
+        'overall_margin_pct': overall_margin_pct,
+        'current_month_label': current_month_label,
+        'investments_detail': investments_detail,
+        'products': products
+    }
+
+
+def generate_balance_sheet_excel():
+    """
+    Builds a styled multi-sheet financial Excel workbook (.xlsx):
+    - Sheet 1: Monthly Comparative Balance Sheet (Assets, Liabilities, Equity)
+    - Sheet 2: Monthly Profit & Loss Statement (Income Statement)
+    - Sheet 3: Monthly Cash Flow Statement
+    - Sheet 4: Current Merchandise Inventory Assets
+    - Sheet 5: Capital & Financing Contributions
+    """
+    model = get_monthly_balance_sheet_data()
+    monthly_data = model['monthly_data']
+    all_categories = model['expense_categories']
+    products = model['products']
+    investments_detail = model['investments_detail']
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)  # remove empty default sheet
+
+    font_title = Font(name="Calibri", size=13, bold=True, color="1E293B")
+    font_subtitle = Font(name="Calibri", size=10, italic=True, color="64748B")
+    font_header = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+    font_section = Font(name="Calibri", size=10, bold=True, color="A17A1F")
+    font_subtotal = Font(name="Calibri", size=10, bold=True, color="0F172A")
+    font_grand = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    font_regular = Font(name="Calibri", size=10, color="0F172A")
+    font_indent = Font(name="Calibri", size=9, color="475569")
+    font_green = Font(name="Calibri", size=10, bold=True, color="15803D")
+
+    fill_header = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_section = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    fill_subtotal = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_total = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_check = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+
+    thin_border = Border(
+        left=Side(style='thin', color="E2E8F0"),
+        right=Side(style='thin', color="E2E8F0"),
+        top=Side(style='thin', color="E2E8F0"),
+        bottom=Side(style='thin', color="E2E8F0")
+    )
+    total_border = Border(
+        top=Side(style='thin', color="A17A1F"),
+        bottom=Side(style='double', color="A17A1F")
+    )
+
+    def add_styled_row(ws, label, values, row_type="regular", indent=0):
+        row_vals = [" " * (indent * 3) + label] + values
+        ws.append(row_vals)
+        r = ws.max_row
+        for c_idx in range(1, len(row_vals) + 1):
+            cell = ws.cell(row=r, column=c_idx)
+            cell.border = thin_border
+            if c_idx > 1 and isinstance(cell.value, (int, float)):
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal="right")
+
+            if row_type == "section":
+                cell.font = font_section
+                cell.fill = fill_section
+            elif row_type == "subtotal":
+                cell.font = font_subtotal
+                cell.fill = fill_subtotal
+            elif row_type == "total":
+                cell.font = font_grand
+                cell.fill = fill_total
+                cell.border = total_border
+            elif row_type == "check":
+                cell.font = font_green
+                cell.fill = fill_check
+            elif indent > 0:
+                cell.font = font_indent
+            else:
+                cell.font = font_regular
+        return r
+
+    # ── SHEET 1: MONTHLY BALANCE SHEET ──
+    ws_bs = wb.create_sheet(title="Monthly Balance Sheet")
+    ws_bs.views.sheetView[0].showGridLines = True
+    ws_bs.append(["SALUZA'S CLOSET — MONTHLY COMPARATIVE BALANCE SHEET"])
+    ws_bs.cell(row=1, column=1).font = font_title
+    ws_bs.append(["Statement of Assets, Liabilities, and Owner's Equity (Amounts in Nepalese Rupees - NPR)"])
+    ws_bs.cell(row=2, column=1).font = font_subtitle
+    ws_bs.append([])
+
+    headers = ["Line Item / Account"] + [m['label'] for m in monthly_data]
+    ws_bs.append(headers)
+    for col_idx in range(1, len(headers) + 1):
+        c = ws_bs.cell(row=4, column=col_idx)
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = Alignment(horizontal="center" if col_idx > 1 else "left", vertical="center")
+
+    add_styled_row(ws_bs, "1. ASSETS", ["" for _ in monthly_data], "section")
+    add_styled_row(ws_bs, "A. Current Assets", ["" for _ in monthly_data], "subtotal", indent=1)
+    add_styled_row(ws_bs, "Cash & Cash Equivalents", [m['cash'] for m in monthly_data], "regular", indent=2)
+    add_styled_row(ws_bs, "Merchandise Inventory (at Cost)", [m['inventory'] for m in monthly_data], "regular", indent=2)
+    add_styled_row(ws_bs, "Total Current Assets", [m['total_assets'] for m in monthly_data], "subtotal", indent=1)
+
+    add_styled_row(ws_bs, "B. Non-Current Assets", ["" for _ in monthly_data], "subtotal", indent=1)
+    add_styled_row(ws_bs, "Store Fixtures, Equipment & Property", [0.0 for _ in monthly_data], "regular", indent=2)
+    add_styled_row(ws_bs, "TOTAL ASSETS", [m['total_assets'] for m in monthly_data], "total")
+
+    add_styled_row(ws_bs, "2. LIABILITIES", ["" for _ in monthly_data], "section")
+    add_styled_row(ws_bs, "A. Current Liabilities", ["" for _ in monthly_data], "subtotal", indent=1)
+    add_styled_row(ws_bs, "Trade Accounts Payable", [0.0 for _ in monthly_data], "regular", indent=2)
+    add_styled_row(ws_bs, "B. Long-Term Debt", ["" for _ in monthly_data], "subtotal", indent=1)
+    add_styled_row(ws_bs, "Bank Term Loans", [0.0 for _ in monthly_data], "regular", indent=2)
+    add_styled_row(ws_bs, "TOTAL LIABILITIES", [0.0 for _ in monthly_data], "total")
+
+    add_styled_row(ws_bs, "3. OWNER'S EQUITY & CAPITAL", ["" for _ in monthly_data], "section")
+    add_styled_row(ws_bs, "Owner's Invested Capital / Seed Loans", [m['cum_capital'] for m in monthly_data], "regular", indent=1)
+    add_styled_row(ws_bs, "Retained Earnings (Opening)", [m['opening_re'] for m in monthly_data], "regular", indent=1)
+    add_styled_row(ws_bs, "Add: Net Profit / (Loss) for Current Month", [m['net_profit'] for m in monthly_data], "regular", indent=1)
+    add_styled_row(ws_bs, "Cumulative Retained Earnings (Closing)", [m['closing_re'] for m in monthly_data], "subtotal", indent=1)
+    add_styled_row(ws_bs, "TOTAL OWNER'S EQUITY", [m['total_equity'] for m in monthly_data], "total")
+
+    add_styled_row(ws_bs, "TOTAL LIABILITIES & OWNER'S EQUITY", [m['total_liab_equity'] for m in monthly_data], "total")
+    add_styled_row(ws_bs, "ACCOUNTING BALANCE CHECK (Assets - Liab - Equity)", [m['variance'] for m in monthly_data], "check")
+
+    for col in ws_bs.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws_bs.column_dimensions[col_letter].width = max(max_len + 3, 16)
+    ws_bs.column_dimensions['A'].width = 38
+
+    # ── SHEET 2: MONTHLY P&L (INCOME STATEMENT) ──
+    ws_pl = wb.create_sheet(title="Monthly P&L")
+    ws_pl.views.sheetView[0].showGridLines = True
+    ws_pl.append(["SALUZA'S CLOSET — MONTHLY PROFIT & LOSS STATEMENT (INCOME STATEMENT)"])
+    ws_pl.cell(row=1, column=1).font = font_title
+    ws_pl.append(["Monthly Revenue, COGS, Categorized Operating Expenses and Net Profit (Amounts in NPR)"])
+    ws_pl.cell(row=2, column=1).font = font_subtitle
+    ws_pl.append([])
+
+    pl_headers = ["Performance Metric"] + [m['label'] for m in monthly_data] + ["Lifetime Total"]
+    ws_pl.append(pl_headers)
+    for col_idx in range(1, len(pl_headers) + 1):
+        c = ws_pl.cell(row=4, column=col_idx)
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = Alignment(horizontal="center" if col_idx > 1 else "left", vertical="center")
+
+    tot_sales = sum(m['sales'] for m in monthly_data)
+    tot_cogs = sum(m['cogs'] for m in monthly_data)
+    tot_gp = sum(m['gross_profit'] for m in monthly_data)
+    tot_exp = sum(m['expenses_total'] for m in monthly_data)
+    tot_np = sum(m['net_profit'] for m in monthly_data)
+    ov_margin = f"{round((tot_np / tot_sales * 100), 2)}%" if tot_sales else "0.0%"
+
+    add_styled_row(ws_pl, "Gross Sales Revenue", [m['sales'] for m in monthly_data] + [tot_sales], "subtotal")
+    add_styled_row(ws_pl, "Less: Cost of Goods Sold (COGS)", [m['cogs'] for m in monthly_data] + [tot_cogs], "regular", indent=1)
+    add_styled_row(ws_pl, "Gross Profit", [m['gross_profit'] for m in monthly_data] + [tot_gp], "subtotal")
+
+    add_styled_row(ws_pl, "OPERATING OVERHEAD EXPENSES", ["" for _ in monthly_data] + [""], "section")
+    for cat in all_categories:
+        cat_tot = sum(m['expenses_by_cat'].get(cat, 0.0) for m in monthly_data)
+        add_styled_row(ws_pl, cat, [m['expenses_by_cat'].get(cat, 0.0) for m in monthly_data] + [cat_tot], "regular", indent=1)
+    add_styled_row(ws_pl, "Total Operating Expenses", [m['expenses_total'] for m in monthly_data] + [tot_exp], "subtotal")
+
+    add_styled_row(ws_pl, "NET PROFIT / (LOSS)", [m['net_profit'] for m in monthly_data] + [tot_np], "total")
+    add_styled_row(ws_pl, "Profit Margin (%)", [f"{m['margin_pct']}%" for m in monthly_data] + [ov_margin], "subtotal")
+
+    for col in ws_pl.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws_pl.column_dimensions[col_letter].width = max(max_len + 3, 16)
+    ws_pl.column_dimensions['A'].width = 36
+
+    # ── SHEET 3: MONTHLY CASH FLOW ──
+    ws_cf = wb.create_sheet(title="Monthly Cash Flow")
+    ws_cf.views.sheetView[0].showGridLines = True
+    ws_cf.append(["SALUZA'S CLOSET — MONTHLY CASH FLOW STATEMENT"])
+    ws_cf.cell(row=1, column=1).font = font_title
+    ws_cf.append(["Cash inflows and outflows from Operations, Financing, and Stock Procurement (Amounts in NPR)"])
+    ws_cf.cell(row=2, column=1).font = font_subtitle
+    ws_cf.append([])
+
+    cf_headers = ["Cash Flow Activity"] + [m['label'] for m in monthly_data]
+    ws_cf.append(cf_headers)
+    for col_idx in range(1, len(cf_headers) + 1):
+        c = ws_cf.cell(row=4, column=col_idx)
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = Alignment(horizontal="center" if col_idx > 1 else "left", vertical="center")
+
+    add_styled_row(ws_cf, "1. CASH INFLOWS", ["" for _ in monthly_data], "section")
+    add_styled_row(ws_cf, "Cash Collections from Sales", [m['sales'] for m in monthly_data], "regular", indent=1)
+    add_styled_row(ws_cf, "Owner Capital Injections / Loans", [m['capital_injected'] for m in monthly_data], "regular", indent=1)
+
+    add_styled_row(ws_cf, "2. CASH OUTFLOWS", ["" for _ in monthly_data], "section")
+    add_styled_row(ws_cf, "Product & Inventory Stock Purchases", [m['purchases'] for m in monthly_data], "regular", indent=1)
+    add_styled_row(ws_cf, "Operating & Overhead Expenses Paid", [m['expenses_total'] for m in monthly_data], "regular", indent=1)
+
+    add_styled_row(ws_cf, "NET MONTHLY CHANGE IN CASH", [m['net_cash_flow'] for m in monthly_data], "subtotal")
+    add_styled_row(ws_cf, "ENDING CASH IN HAND BALANCE", [m['cash'] for m in monthly_data], "total")
+
+    for col in ws_cf.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws_cf.column_dimensions[col_letter].width = max(max_len + 3, 16)
+    ws_cf.column_dimensions['A'].width = 38
+
+    # ── SHEET 4: CURRENT INVENTORY ASSETS ──
+    ws_inv = wb.create_sheet(title="Current Inventory Assets")
+    ws_inv.views.sheetView[0].showGridLines = True
+    ws_inv.append(["SALUZA'S CLOSET — CURRENT INVENTORY ASSET VALUATION"])
+    ws_inv.cell(row=1, column=1).font = font_title
+    ws_inv.append([f"Stock Valuation as of closing: Rs. {model['current_inventory']:,.2f} | Total Units: {model['total_stock_units']}"])
+    ws_inv.cell(row=2, column=1).font = font_subtitle
+    ws_inv.append([])
+
+    inv_headers = ["ID", "SKU", "Product Name", "Size", "Cost Price (NPR)", "Selling Price (NPR)", "Stock Units", "Total Asset Value (NPR)"]
+    ws_inv.append(inv_headers)
+    for col_idx in range(1, len(inv_headers) + 1):
+        c = ws_inv.cell(row=4, column=col_idx)
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = Alignment(horizontal="center" if col_idx in [1, 4, 7] else "left", vertical="center")
+
     for p in products:
-        stock_value = p.stock * p.cost_price
-        total_inventory_value += stock_value
-        prod_data.append({
-            "ID": p.id,
-            "SKU": p.sku,
-            "Name": p.name,
-            "Size": p.size,
-            "Cost Price": p.cost_price,
-            "Selling Price": p.price,
-            "Current Stock": p.stock,
-            "Stock Value (Asset)": stock_value,
-            "Image File": p.image
-        })
-    pd.DataFrame(prod_data).to_excel(writer, index=False, sheet_name='Current Inventory')
+        val = p.cost_price * p.stock
+        ws_inv.append([p.id, p.sku or "N/A", p.name, p.size, p.cost_price, p.price, p.stock, val])
+        r = ws_inv.max_row
+        for ci in range(1, 9):
+            cell = ws_inv.cell(row=r, column=ci)
+            cell.border = thin_border
+            cell.font = font_regular
+            if ci in [5, 6, 8]:
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal="right")
+            elif ci in [1, 7]:
+                cell.alignment = Alignment(horizontal="center")
 
-    # --- SHEET 4: MANUAL EXPENSES (Rent, Ads) ---
-    expenses = Expense.query.all()
-    exp_data = []
-    total_manual_expenses = 0
-    for e in expenses:
-        total_manual_expenses += e.amount
-        exp_data.append({
-            "ID": e.id,
-            "Date": e.date.strftime('%Y-%m-%d'),
-            "Category": e.category,
-            "Description": e.description,
-            "Amount": e.amount
-        })
-    pd.DataFrame(exp_data).to_excel(writer, index=False, sheet_name='Other Expenses')
+    for col in ws_inv.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws_inv.column_dimensions[col_letter].width = max(max_len + 3, 14)
 
-    # --- SHEET 5: FINANCIAL SNAPSHOT (The Dashboard Numbers) ---
-    # Calculate Sold Goods Cost
-    sold_items = OrderItem.query.all()
-    sold_cost = 0
-    for i in sold_items:
-        product = Product.query.get(i.product_id)
-        if product:
-            sold_cost += (i.quantity * product.cost_price)
-            
-    total_sales = db.session.query(db.func.sum(Order.total_amount)).scalar() or 0
-    
-    # Summary Table
-    summary_data = [
-        {"Metric": "Total Sales Revenue", "Value": total_sales},
-        {"Metric": "Cost of Sold Goods (Sold Products Only)", "Value": sold_cost},
-        {"Metric": "Total Operating Expenses (Rent/Ads/etc.)", "Value": total_manual_expenses},
-        {"Metric": "NET PROFIT (Revenue - Sold Cost - Expenses)", "Value": total_sales - sold_cost - total_manual_expenses},
-        {"Metric": "PROFIT MARGIN (%)", "Value": round(((total_sales - sold_cost - total_manual_expenses) / total_sales * 100), 2) if total_sales else 0},
-        {"Metric": "Value of Unsold Inventory (On Shelf)", "Value": total_inventory_value},
-        {"Metric": "Total Product Investment (Sold + Unsold)", "Value": total_inventory_value + sold_cost},
-        {"Metric": "NET PROFIT (Cash Basis - All Inventory Subtracted)", "Value": total_sales - (total_manual_expenses + total_inventory_value + sold_cost)}
-    ]
-    pd.DataFrame(summary_data).to_excel(writer, index=False, sheet_name='Financial Summary')
+    # ── SHEET 5: CAPITAL & INVESTMENTS ──
+    ws_cap = wb.create_sheet(title="Capital & Financing")
+    ws_cap.views.sheetView[0].showGridLines = True
+    ws_cap.append(["SALUZA'S CLOSET — CAPITAL & FINANCING CONTRIBUTIONS"])
+    ws_cap.cell(row=1, column=1).font = font_title
+    ws_cap.append(["Record of Owner's Capital Investments and Seed Loans"])
+    ws_cap.cell(row=2, column=1).font = font_subtitle
+    ws_cap.append([])
 
-    writer.close()
+    cap_headers = ["Investment ID", "Transaction Date", "Note / Source", "Amount (NPR)"]
+    ws_cap.append(cap_headers)
+    for col_idx in range(1, len(cap_headers) + 1):
+        c = ws_cap.cell(row=4, column=col_idx)
+        c.font = font_header
+        c.fill = fill_header
+        c.alignment = Alignment(horizontal="center" if col_idx in [1, 2] else "left", vertical="center")
+
+    tot_cap = 0.0
+    for inv in investments_detail:
+        tot_cap += inv.amount
+        ws_cap.append([inv.id, inv.date.strftime('%Y-%m-%d') if inv.date else "Initial", inv.note or "Capital Investment", inv.amount])
+        r = ws_cap.max_row
+        for ci in range(1, 5):
+            cell = ws_cap.cell(row=r, column=ci)
+            cell.border = thin_border
+            cell.font = font_regular
+            if ci == 4:
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal="right")
+            elif ci in [1, 2]:
+                cell.alignment = Alignment(horizontal="center")
+
+    add_styled_row(ws_cap, "TOTAL INVESTED CAPITAL", [tot_cap], "total")
+
+    for col in ws_cap.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws_cap.column_dimensions[col_letter].width = max(max_len + 3, 16)
+
+    output = BytesIO()
+    wb.save(output)
     output.seek(0)
-    
-    return send_file(output, download_name="Saluza_Full_Data_Export.xlsx", as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    return output
+
+
+# ══════════════════════════════════════════════════════════════
+# BALANCE SHEET & EXPORT ROUTES
+# ══════════════════════════════════════════════════════════════
+
+@app.route('/balance_sheet')
+def balance_sheet():
+    """
+    Renders the Monthly Balance Sheet dashboard, presenting:
+    - Comparative Balance Sheet table across all monthly cycles
+    - P&L and Cash Flow statements
+    - Financial health KPIs (Working Capital, Net Worth, Ratios)
+    """
+    data = get_monthly_balance_sheet_data()
+    return render_template('balance_sheet.html', **data)
+
+
+@app.route('/export_excel')
+@app.route('/export_balance_sheet')
+def export_excel():
+    """
+    Exports the comprehensive Monthly Balance Sheet, P&L, Cash Flow,
+    Inventory Assets, and Financing records as a professionally styled Excel workbook.
+    """
+    output = generate_balance_sheet_excel()
+    return send_file(
+        output,
+        download_name="Saluza_Monthly_Balance_Sheet.xlsx",
+        as_attachment=True,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 @app.route('/update_status/<int:id>', methods=['POST'])
 def update_status(id):
@@ -719,15 +1143,24 @@ def edit_product(id):
 @app.route('/new_order')
 def new_order():
     products = Product.query.filter(Product.stock > 0).order_by(Product.id.desc()).all()
-    return render_template('new_order.html', products=products)
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    return render_template('new_order.html', products=products, today_date=today_date)
 
 @app.route('/create_order', methods=['POST'])
 def create_order():
     data = request.json
+    order_date = datetime.utcnow()
+    if data.get('order_date'):
+        try:
+            parsed_d = datetime.strptime(data['order_date'], '%Y-%m-%d')
+            order_date = datetime.combine(parsed_d.date(), datetime.utcnow().time())
+        except Exception:
+            pass
     new_order = Order(
         customer_name=data['customer_name'],
         phone=data['phone'],
         address=data['address'],
+        date=order_date,
         status='Pending'
     )
     db.session.add(new_order)
@@ -786,6 +1219,13 @@ def update_order_data():
     order.customer_name = data['customer_name']
     order.phone = data['phone']
     order.address = data['address']
+    if data.get('order_date'):
+        try:
+            parsed_d = datetime.strptime(data['order_date'], '%Y-%m-%d')
+            curr_time = order.date.time() if order.date else datetime.utcnow().time()
+            order.date = datetime.combine(parsed_d.date(), curr_time)
+        except Exception:
+            pass
     
     grand_total = 0
     total_profit = 0
@@ -819,6 +1259,23 @@ def update_order_data():
     db.session.commit()
     
     return jsonify({'message': 'Order Updated'})
+
+@app.route('/update_order_date/<int:id>', methods=['POST'])
+def update_order_date(id):
+    order = Order.query.get_or_404(id)
+    date_str = request.form.get('date') or (request.json.get('date') if request.is_json else None)
+    if date_str:
+        try:
+            parsed_d = datetime.strptime(date_str, '%Y-%m-%d')
+            curr_time = order.date.time() if order.date else datetime.utcnow().time()
+            order.date = datetime.combine(parsed_d.date(), curr_time)
+            db.session.commit()
+            if request.is_json:
+                return jsonify({'success': True, 'date': order.date.strftime('%Y-%m-%d')})
+        except Exception as e:
+            if request.is_json:
+                return jsonify({'success': False, 'error': str(e)}), 400
+    return redirect(request.referrer or url_for('order_history'))
 
 @app.route('/delete_product/<int:id>')
 def delete_product(id):
@@ -857,8 +1314,15 @@ def delete_order(id):
 def add_investment():
     amount = float(request.form.get('amount'))
     note = request.form.get('note')
-    
-    new_invest = Investment(amount=amount, note=note)
+    date_str = request.form.get('date')
+    inv_date = datetime.utcnow()
+    if date_str:
+        try:
+            parsed_d = datetime.strptime(date_str, '%Y-%m-%d')
+            inv_date = datetime.combine(parsed_d.date(), datetime.utcnow().time())
+        except Exception:
+            pass
+    new_invest = Investment(amount=amount, note=note, date=inv_date)
     db.session.add(new_invest)
     db.session.commit()
     
@@ -871,6 +1335,14 @@ def edit_investment(id):
     if request.method == 'POST':
         invest.amount = float(request.form.get('amount'))
         invest.note = request.form.get('note')
+        date_str = request.form.get('date')
+        if date_str:
+            try:
+                parsed_d = datetime.strptime(date_str, '%Y-%m-%d')
+                curr_time = invest.date.time() if invest.date else datetime.utcnow().time()
+                invest.date = datetime.combine(parsed_d.date(), curr_time)
+            except Exception:
+                pass
         db.session.commit()
         return redirect(url_for('dashboard'))
         

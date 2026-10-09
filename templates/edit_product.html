@@ -44,7 +44,14 @@
                         </div>
                         <div class="col">
                             <label class="form-label">Size</label>
-                            <input type="text" name="size" class="form-control" value="{{ p.size }}" required>
+                            <select name="size" class="form-select" required>
+                                {% for sz in ['38', '40', '42', '44', '46'] %}
+                                <option value="{{ sz }}" {% if p.size == sz %}selected{% endif %}>{{ sz }}</option>
+                                {% endfor %}
+                                {% if p.size not in ['38', '40', '42', '44', '46'] %}
+                                <option value="{{ p.size }}" selected>{{ p.size }}</option>
+                                {% endif %}
+                            </select>
                         </div>
                     </div>
 

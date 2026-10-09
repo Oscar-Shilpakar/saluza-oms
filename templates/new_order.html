@@ -54,6 +54,10 @@
                 <!-- Customer Details Form -->
                 <div class="p-3" style="border-top: 1px solid var(--line-soft);">
                     <div class="stat-label mb-2">Customer Details</div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1" style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 600;">Order Date</label>
+                        <input type="date" id="orderDate" class="form-control form-control-sm" value="{{ today_date }}">
+                    </div>
                     <input type="text" id="custName" class="form-control form-control-sm mb-2"
                         placeholder="Client Name">
                     <input type="text" id="custPhone" class="form-control form-control-sm mb-2"
@@ -234,12 +238,13 @@
         const name = document.getElementById('custName').value;
         const phone = document.getElementById('custPhone').value;
         const address = document.getElementById('custAddress').value;
+        const orderDate = document.getElementById('orderDate').value;
         if (!name || cart.length === 0) return alert("Please fill client name and add at least one item.");
         const response = await fetch('/create_order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                customer_name: name, phone, address,
+                customer_name: name, phone, address, order_date: orderDate,
                 items: cart.map(i => ({ product_id: i.id, quantity: i.qty, discount: i.discount }))
             })
         });

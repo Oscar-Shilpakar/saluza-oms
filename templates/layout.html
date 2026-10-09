@@ -127,7 +127,7 @@
         /* ── PAGE ANIMATION ── */
         @keyframes pageIn {
             from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
+            to   { opacity: 1; transform: none; }
         }
         .page-content { animation: pageIn 0.4s var(--ease) both; }
 
@@ -563,6 +563,12 @@
             letter-spacing: 0.12em; text-transform: uppercase;
             color: var(--text) !important;
         }
+        .modal {
+            z-index: 1065 !important;
+        }
+        .modal-backdrop {
+            z-index: 1050 !important;
+        }
         .modal-footer { border-color: var(--line-soft) !important; }
         .modal-backdrop.show {
             opacity: 0.4;
@@ -624,6 +630,9 @@
             <a class="sidebar-link {% if request.path == '/' %}active{% endif %}" href="/">
                 <i class="bi bi-grid-1x2-fill"></i> Dashboard
             </a>
+            <a class="sidebar-link {% if request.path == '/balance_sheet' %}active{% endif %}" href="/balance_sheet">
+                <i class="bi bi-file-earmark-spreadsheet-fill"></i> Balance Sheet
+            </a>
 
             <span class="sidebar-nav-label">Operations</span>
             <a class="sidebar-link {% if request.path == '/new_order' %}active{% endif %}" href="/new_order">
@@ -673,6 +682,13 @@
         const close = () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); };
         if (hamburger) hamburger.addEventListener('click', open);
         if (overlay)   overlay.addEventListener('click', close);
+
+        // Ensure all Bootstrap modals are appended to <body> so they never render behind backdrops
+        document.addEventListener('show.bs.modal', function (event) {
+            if (event.target && event.target.parentElement !== document.body) {
+                document.body.appendChild(event.target);
+            }
+        });
     </script>
 </body>
 </html>

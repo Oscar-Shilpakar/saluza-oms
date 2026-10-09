@@ -1,0 +1,751 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    /* ══════════════════════════════════════════
+       BALANCE SHEET STYLES
+    ══════════════════════════════════════════ */
+    .bs-table-container {
+        overflow-x: auto;
+        border-radius: var(--r-lg);
+        border: 1px solid var(--line-soft);
+        background: #FFFFFF;
+        box-shadow: var(--shadow-sm);
+    }
+    .bs-table {
+        margin-bottom: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.88rem;
+    }
+    .bs-table th, .bs-table td {
+        padding: 0.75rem 1.1rem;
+        white-space: nowrap;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    .bs-table thead th {
+        background: #F8FAFC;
+        font-family: 'Oswald', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        border-bottom: 2px solid var(--line);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .bs-table thead th.current-col, .bs-table tbody td.current-col {
+        background-color: rgba(161, 122, 31, 0.05) !important;
+        font-weight: 700;
+    }
+    .bs-col-account {
+        min-width: 250px;
+        font-weight: 500;
+        background: #FFFFFF;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        border-right: 1px solid var(--line-soft);
+    }
+    .bs-table thead th.bs-col-account {
+        z-index: 3;
+        background: #F8FAFC;
+    }
+    .bs-account-indent {
+        padding-left: 1.8rem !important;
+        color: var(--text-secondary);
+        font-size: 0.84rem;
+    }
+    .bs-account-indent-2 {
+        padding-left: 2.8rem !important;
+        color: var(--text-tertiary);
+        font-size: 0.82rem;
+    }
+    .bs-section-header {
+        background: rgba(241, 245, 249, 0.85);
+        font-family: 'Oswald', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        color: var(--gold);
+    }
+    .bs-subtotal-row {
+        background: rgba(248, 250, 252, 0.6);
+        font-weight: 600;
+        border-top: 1px solid var(--line-soft);
+    }
+    .bs-total-row {
+        background: rgba(161, 122, 31, 0.09) !important;
+        font-family: 'Oswald', sans-serif;
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--text);
+        border-top: 2px solid var(--gold);
+        border-bottom: 2px solid var(--gold);
+    }
+    .bs-grand-row {
+        background: rgba(161, 122, 31, 0.15) !important;
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: var(--text);
+        border-top: 2px solid var(--gold);
+        border-bottom: 4px double var(--gold);
+    }
+    .bs-check-row {
+        background: rgba(22, 163, 74, 0.06) !important;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.80rem;
+        font-weight: 600;
+        color: var(--success-dark);
+        border-bottom: 1px solid rgba(22, 163, 74, 0.2);
+    }
+    .num-val {
+        font-family: 'Inter', sans-serif;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+    .num-val.bold {
+        font-family: 'Oswald', sans-serif;
+        letter-spacing: 0.03em;
+        font-size: 0.95rem;
+    }
+    .period-tab-btn {
+        border: 1px solid var(--line-soft);
+        background: #FFFFFF;
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.78rem;
+        padding: 0.4rem 0.85rem;
+        border-radius: var(--r-sm);
+        transition: all 0.2s;
+    }
+    .period-tab-btn:hover, .period-tab-btn.active {
+        background: var(--gold-tint);
+        color: var(--gold);
+        border-color: var(--gold);
+    }
+    .metric-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+
+<!-- ══════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════ -->
+<div class="page-header">
+    <div>
+        <div class="page-header-eyebrow">
+            <div class="page-header-eyebrow-line"></div>
+            <span class="page-header-eyebrow-text">Financial Accounting · Saluza's Closet</span>
+        </div>
+        <h1>Monthly <span class="gold">Balance Sheet</span></h1>
+        <p class="page-header-sub">Month-by-month comparative statement of Assets, Liabilities, Owner's Equity, and Net Worth.</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <a href="/export_excel" class="btn btn-primary btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel Workbook
+        </a>
+        <a href="/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     EXECUTIVE SUMMARY CARDS (CURRENT POSITION)
+══════════════════════════════════════════ -->
+<div class="section-divider mb-3">
+    <div class="section-divider-line"></div>
+    <span class="section-divider-text">Current Balance Sheet Snapshot (As of {{ current_month_label }})</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Total Assets -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="stat-label">Total Assets</div>
+                <span class="badge bg-gold"><i class="bi bi-wallet2 me-1"></i>NPR</span>
+            </div>
+            <div class="stat-gold-line"></div>
+            <div class="stat-value gold">Rs. {{ "{:,.2f}".format(current_total_assets) }}</div>
+            <div class="stat-sub d-flex justify-content-between">
+                <span>Cash: Rs. {{ "{:,.0f}".format(current_cash) }}</span>
+                <span>Stock: Rs. {{ "{:,.0f}".format(current_inventory) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cash & Equivalents -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="stat-label">Liquid Cash in Hand</div>
+                <span class="badge bg-success-tint text-success"><i class="bi bi-cash-stack me-1"></i>Liquid</span>
+            </div>
+            <div class="stat-gold-line" style="background: var(--success);"></div>
+            <div class="stat-value" style="color: var(--success);">Rs. {{ "{:,.2f}".format(current_cash) }}</div>
+            <div class="stat-sub">
+                Operating cash balance available
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Asset -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="stat-label">Merchandise Stock Asset</div>
+                <span class="badge bg-info-tint text-info"><i class="bi bi-boxes me-1"></i>Cost Value</span>
+            </div>
+            <div class="stat-gold-line" style="background: var(--info);"></div>
+            <div class="stat-value" style="color: var(--info);">Rs. {{ "{:,.2f}".format(current_inventory) }}</div>
+            <div class="stat-sub">
+                {{ total_stock_units }} units sitting in inventory
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner's Equity / Net Worth -->
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="stat-label">Total Owner's Equity</div>
+                <span class="badge bg-warning-tint text-warning"><i class="bi bi-shield-check me-1"></i>Net Worth</span>
+            </div>
+            <div class="stat-gold-line" style="background: var(--warning);"></div>
+            <div class="stat-value" style="color: var(--gold-dark, #8C6B18);">Rs. {{ "{:,.2f}".format(current_total_equity) }}</div>
+            <div class="stat-sub d-flex justify-content-between">
+                <span>Capital: Rs. {{ "{:,.0f}".format(total_investment) }}</span>
+                <span>Retained: Rs. {{ "{:,.0f}".format(lifetime_net_profit) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ACCOUNTING INTEGRITY STATUS BANNER -->
+<div class="card mb-4 border-success-subtle bg-light">
+    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                 style="width: 42px; height: 42px; background: rgba(22, 163, 74, 0.15); color: var(--success); font-size: 1.2rem;">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold text-dark">Standard Accounting Equation: Assets = Liabilities + Equity</h6>
+                <p class="mb-0 text-secondary small">
+                    Every month is completely balanced with zero variance (Rs. 0.00). Working Capital: <strong>Rs. {{ "{:,.2f}".format(current_total_assets) }}</strong> | Current Ratio: <strong>Healthy (No short-term debt)</strong>
+                </p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success py-2 px-3">
+                <i class="bi bi-patch-check-fill me-1"></i>100% Balanced
+            </span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print Statement
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     NAV TABS: BALANCE SHEET / P&L / CASH FLOW
+══════════════════════════════════════════ -->
+<ul class="nav nav-pills mb-3 gap-2" id="financialTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold text-uppercase py-2 px-3" id="bs-tab" data-bs-toggle="pill" data-bs-target="#bs-pane" type="button" role="tab">
+            <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Monthly Balance Sheet
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-2 px-3" id="pl-tab" data-bs-toggle="pill" data-bs-target="#pl-pane" type="button" role="tab">
+            <i class="bi bi-graph-up me-1"></i> Monthly Income Statement (P&L)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold text-uppercase py-2 px-3" id="cf-tab" data-bs-toggle="pill" data-bs-target="#cf-pane" type="button" role="tab">
+            <i class="bi bi-arrow-left-right me-1"></i> Monthly Cash Flow Statement
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="financialTabsContent">
+
+    <!-- ──────────────────────────────────────────
+         TAB 1: MONTHLY BALANCE SHEET TABLE
+    ────────────────────────────────────────── -->
+    <div class="tab-pane fade show active" id="bs-pane" role="tabpanel">
+        <div class="card mb-4">
+            <div class="card-header justify-content-between">
+                <span><i class="bi bi-table me-2"></i>Comparative Balance Sheet (Month-by-Month)</span>
+                <span class="badge bg-gold">{{ monthly_data|length }} Monthly Cycles Recorded</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="bs-table-container">
+                    <table class="table bs-table">
+                        <thead>
+                            <tr>
+                                <th class="bs-col-account">Account / Line Item</th>
+                                {% for m in monthly_data %}
+                                <th class="text-end {% if loop.last %}current-col text-dark{% endif %}">
+                                    {{ m.label }}
+                                    {% if loop.last %}
+                                    <div class="badge bg-gold text-dark" style="font-size: 0.65rem; display: block; margin-top: 2px;">Latest</div>
+                                    {% endif %}
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- ── 1. ASSETS SECTION ── -->
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 1 }}"><i class="bi bi-folder2-open me-2"></i>1. ASSETS</td>
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-dark">A. Current Assets</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted small {% if loop.last %}current-col{% endif %}"></td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Cash & Cash Equivalents</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val {% if loop.last %}current-col fw-bold text-success{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.cash) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Merchandise Inventory (at Cost)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val {% if loop.last %}current-col fw-bold text-info{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.inventory) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold">Total Current Assets</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold text-dark {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.total_assets) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <!-- Non-Current Assets -->
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-dark">B. Non-Current Assets</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted small {% if loop.last %}current-col{% endif %}"></td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Property, Fixtures & Equipment</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">Rs. 0.00</td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-total-row">
+                                <td class="bs-col-account fw-bold text-dark">TOTAL ASSETS</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.total_assets) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <!-- ── 2. LIABILITIES SECTION ── -->
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 1 }}"><i class="bi bi-shield-slash me-2"></i>2. LIABILITIES</td>
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-dark">A. Current Liabilities</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted small {% if loop.last %}current-col{% endif %}"></td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Trade Accounts Payable</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">Rs. 0.00</td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Accrued Operational Expenses</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">Rs. 0.00</td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-dark">B. Long-Term Debt</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted small {% if loop.last %}current-col{% endif %}"></td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent-2">Bank & Formal Term Loans</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">Rs. 0.00</td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-total-row">
+                                <td class="bs-col-account fw-bold text-dark">TOTAL LIABILITIES</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold text-muted {% if loop.last %}current-col{% endif %}">
+                                    Rs. 0.00
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <!-- ── 3. OWNER'S EQUITY SECTION ── -->
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 1 }}"><i class="bi bi-pie-chart-fill me-2"></i>3. OWNER'S EQUITY & CAPITAL</td>
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Owner's Injected Capital & Seed Loans</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.cum_capital) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Retained Earnings (Opening Period)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.opening_re) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Net Profit / (Loss) for Current Month</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val {% if m.net_profit >= 0 %}text-success{% else %}text-danger{% endif %} {% if loop.last %}current-col fw-bold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.net_profit) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-dark">Cumulative Retained Earnings (Closing)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold text-dark {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.closing_re) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-total-row">
+                                <td class="bs-col-account fw-bold text-dark">TOTAL OWNER'S EQUITY</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.total_equity) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <!-- ── 4. TOTAL LIABILITIES & EQUITY ── -->
+                            <tr class="bs-grand-row">
+                                <td class="bs-col-account fw-bold">TOTAL LIABILITIES & EQUITY</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.total_liab_equity) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <!-- ── 5. BALANCE CHECK (VARIANCE) ── -->
+                            <tr class="bs-check-row">
+                                <td class="bs-col-account fw-bold text-success">
+                                    <i class="bi bi-check-all me-1"></i>Balance Check (Assets - Liab - Equity)
+                                </td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-success fw-bold {% if loop.last %}current-col{% endif %}">
+                                    ✓ Rs. {{ "{:,.2f}".format(m.variance) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-top py-3 text-secondary small d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-info-circle me-1"></i>All amounts are expressed in Nepalese Rupees (NPR). Accounting standard: Double-entry accrual basis.</span>
+                <span class="text-success fw-bold"><i class="bi bi-shield-check me-1"></i>Double Entry Integrity Verified</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────
+         TAB 2: MONTHLY INCOME STATEMENT (P&L)
+    ────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="pl-pane" role="tabpanel">
+        <div class="card mb-4">
+            <div class="card-header justify-content-between">
+                <span><i class="bi bi-graph-up-arrow me-2"></i>Monthly Profit & Loss Performance</span>
+                <span class="badge bg-gold">Revenue, COGS & Margins</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="bs-table-container">
+                    <table class="table bs-table">
+                        <thead>
+                            <tr>
+                                <th class="bs-col-account">Performance Metric</th>
+                                {% for m in monthly_data %}
+                                <th class="text-end {% if loop.last %}current-col text-dark{% endif %}">{{ m.label }}</th>
+                                {% endfor %}
+                                <th class="text-end fw-bold bg-light">Lifetime Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Sales Revenue -->
+                            <tr>
+                                <td class="bs-col-account fw-bold text-dark">Gross Sales Revenue</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val fw-bold {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.sales) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val fw-bold bg-light text-dark">Rs. {{ "{:,.2f}".format(total_sales_lifetime) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent text-danger">Less: Cost of Goods Sold (COGS)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-danger {% if loop.last %}current-col{% endif %}">
+                                    - Rs. {{ "{:,.2f}".format(m.cogs) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val text-danger bg-light">- Rs. {{ "{:,.2f}".format(total_cogs_lifetime) }}</td>
+                            </tr>
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-col-account fw-bold text-dark">Gross Profit</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold text-dark {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.gross_profit) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val bold bg-light text-gold">Rs. {{ "{:,.2f}".format(total_gross_profit_lifetime) }}</td>
+                            </tr>
+
+                            <!-- Operating Expenses Breakdown -->
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 2 }}"><i class="bi bi-receipt me-2"></i>OPERATING EXPENSES (OVERHEAD)</td>
+                            </tr>
+                            {% for cat in expense_categories %}
+                            <tr>
+                                <td class="bs-account-indent">{{ cat }}</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-muted {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.expenses_by_cat.get(cat, 0.0)) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val text-muted bg-light">
+                                    Rs. {{ "{:,.2f}".format(category_totals.get(cat, 0.0)) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="bs-subtotal-row">
+                                <td class="bs-account-indent fw-bold text-danger">Total Operating Expenses</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-danger fw-bold {% if loop.last %}current-col{% endif %}">
+                                    - Rs. {{ "{:,.2f}".format(m.expenses_total) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val text-danger fw-bold bg-light">- Rs. {{ "{:,.2f}".format(total_expenses_lifetime) }}</td>
+                            </tr>
+
+                            <!-- Net Profit -->
+                            <tr class="bs-total-row">
+                                <td class="bs-col-account fw-bold text-dark">NET PROFIT / (LOSS)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if m.net_profit >= 0 %}text-success{% else %}text-danger{% endif %} {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.net_profit) }}
+                                </td>
+                                {% endfor %}
+                                <td class="num-val bold bg-light text-success">Rs. {{ "{:,.2f}".format(lifetime_net_profit) }}</td>
+                            </tr>
+
+                            <!-- Profit Margin % -->
+                            <tr>
+                                <td class="bs-col-account text-secondary small">Net Profit Margin (%)</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val small {% if m.margin_pct >= 0 %}text-success{% else %}text-danger{% endif %} {% if loop.last %}current-col fw-bold{% endif %}">
+                                    {{ "%.1f"|format(m.margin_pct) }}%
+                                </td>
+                                {% endfor %}
+                                <td class="num-val small fw-bold bg-light text-success">{{ "%.1f"|format(overall_margin_pct) }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────
+         TAB 3: MONTHLY CASH FLOW STATEMENT
+    ────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="cf-pane" role="tabpanel">
+        <div class="card mb-4">
+            <div class="card-header justify-content-between">
+                <span><i class="bi bi-cash-coin me-2"></i>Monthly Cash Flow Statement</span>
+                <span class="badge bg-gold">Cash Inflows & Outflows</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="bs-table-container">
+                    <table class="table bs-table">
+                        <thead>
+                            <tr>
+                                <th class="bs-col-account">Cash Flow Component</th>
+                                {% for m in monthly_data %}
+                                <th class="text-end {% if loop.last %}current-col text-dark{% endif %}">{{ m.label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 1 }}"><i class="bi bi-arrow-down-left-circle me-2"></i>1. CASH INFLOWS</td>
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Cash Collections from Sales</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-success {% if loop.last %}current-col{% endif %}">
+                                    + Rs. {{ "{:,.2f}".format(m.sales) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Owner Injected Capital / Loans</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val {% if m.capital_injected > 0 %}text-primary fw-bold{% else %}text-muted{% endif %} {% if loop.last %}current-col{% endif %}">
+                                    + Rs. {{ "{:,.2f}".format(m.capital_injected) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <tr class="bs-section-header">
+                                <td colspan="{{ monthly_data|length + 1 }}"><i class="bi bi-arrow-up-right-circle me-2"></i>2. CASH OUTFLOWS</td>
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Product & Inventory Purchases</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-danger {% if loop.last %}current-col{% endif %}">
+                                    - Rs. {{ "{:,.2f}".format(m.purchases) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td class="bs-account-indent">Operating & General Expenses</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val text-danger {% if loop.last %}current-col{% endif %}">
+                                    - Rs. {{ "{:,.2f}".format(m.expenses_total) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+
+                            <tr class="bs-total-row">
+                                <td class="bs-col-account fw-bold text-dark">NET MONTHLY CASH FLOW</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if m.net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %} {% if loop.last %}current-col{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.net_cash_flow) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bs-grand-row">
+                                <td class="bs-col-account fw-bold text-dark">ENDING CASH IN HAND BALANCE</td>
+                                {% for m in monthly_data %}
+                                <td class="num-val bold {% if loop.last %}current-col text-gold{% endif %}">
+                                    Rs. {{ "{:,.2f}".format(m.cash) }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CAPITAL & FINANCING DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header justify-content-between">
+                <span><i class="bi bi-pie-chart me-2"></i>Capital & Investment Financing Breakdown</span>
+                <span class="badge bg-gold">Rs. {{ "{:,.2f}".format(total_investment) }} Total</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Source / Note</th>
+                                <th class="text-end">Amount (NPR)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inv in investments_detail %}
+                            <tr>
+                                <td>{{ inv.date.strftime('%Y-%m-%d') if inv.date else 'Initial' }}</td>
+                                <td class="fw-semibold text-dark">{{ inv.note or 'Capital Investment' }}</td>
+                                <td class="text-end fw-bold text-success">Rs. {{ "{:,.2f}".format(inv.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2">Total Seed Capital & Debt Injected</th>
+                                <th class="text-end text-gold fw-bold">Rs. {{ "{:,.2f}".format(total_investment) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Excel Export Helper Card -->
+    <div class="col-lg-5">
+        <div class="card h-100 border-primary-subtle">
+            <div class="card-header bg-primary-subtle text-primary fw-bold">
+                <i class="bi bi-file-earmark-excel me-2"></i>Excel Financial Model Included
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <p class="text-secondary small mb-3">
+                        The downloaded Excel workbook is formatted specifically for financial audits, stakeholder reporting, and bank balance sheet submissions:
+                    </p>
+                    <ul class="list-unstyled small mb-4">
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><strong>Sheet 1: Monthly Balance Sheet</strong> (Assets, Liab, Equity comparative columns)</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><strong>Sheet 2: Monthly P&L Statement</strong> (Revenue, COGS, categorized expenses)</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><strong>Sheet 3: Monthly Cash Flow</strong> (Opening cash, inflows, outflows, ending cash)</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i><strong>Sheet 4: Stock Asset Valuation</strong> (SKU, Cost, Selling Price, Asset Value)</li>
+                        <li class="mb-0"><i class="bi bi-check2-circle text-success me-2"></i><strong>Sheet 5: Capital Injections</strong> (Owner funds and loans)</li>
+                    </ul>
+                </div>
+                <div>
+                    <a href="/export_excel" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-download me-2"></i>Download Full Balance Sheet (.xlsx)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

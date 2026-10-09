@@ -25,6 +25,11 @@
                 </p>
                 <form method="POST">
                     <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ today_date }}" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Description</label>
                         <input type="text" name="description" class="form-control" placeholder="e.g. Meta Ads Campaign"
                             required>
@@ -94,7 +99,7 @@
                             {% for exp in expenses %}
                             <tr>
                                 <td style="color: var(--text-secondary); font-size: 0.78rem; white-space: nowrap;">
-                                    {{ exp.date.strftime('%Y-%m-%d') }}
+                                    {{ exp.date.strftime('%Y-%m-%d') if exp.date else '' }}
                                 </td>
                                 <td style="font-weight: 500;">{{ exp.description }}</td>
                                 <td>
@@ -107,10 +112,20 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="/delete_expense/{{ exp.id }}" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Delete this expense entry?')" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <button type="button" class="btn btn-sm btn-outline-warning edit-expense-btn" title="Edit Expense"
+                                            data-id="{{ exp.id }}"
+                                            data-desc="{{ exp.description | e }}"
+                                            data-category="{{ exp.category | e }}"
+                                            data-amount="{{ exp.amount }}"
+                                            data-date="{{ exp.date.strftime('%Y-%m-%d') if exp.date else '' }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a href="/delete_expense/{{ exp.id }}" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Delete this expense entry?')" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}
@@ -128,4 +143,82 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Expense Modal -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--line-soft);">
+                <h5 class="modal-title" style="font-weight: 600; font-size: 1rem;">Edit Operating Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editExpenseForm" method="POST" action="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" id="editExpDate" name="date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" id="editExpDesc" name="description" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select id="editExpCategory" name="category" class="form-select" required>
+                            <option value="Marketing">Marketing / Ads</option>
+                            <option value="Packaging">Packaging</option>
+                            <option value="Delivery">Delivery Fees</option>
+                            <option value="Rent">Rent / Utilities</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount (Rs)</label>
+                        <input type="number" id="editExpAmount" name="amount" step="0.01" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between" style="border-top: 1px solid var(--line-soft);">
+                    <a id="editExpFullPage" href="#" class="btn btn-sm btn-link text-secondary p-0" style="font-size: 0.75rem; text-decoration: none;">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Full page editor
+                    </a>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning btn-sm fw-bold">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditExpenseModal(id, desc, category, amount, date) {
+    const modalEl = document.getElementById('editExpenseModal');
+    if (modalEl && modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+    document.getElementById('editExpDate').value = date || '';
+    document.getElementById('editExpDesc').value = desc || '';
+    document.getElementById('editExpCategory').value = category || 'Other';
+    document.getElementById('editExpAmount').value = amount || '';
+    document.getElementById('editExpenseForm').action = '/edit_expense/' + id;
+    const fullPage = document.getElementById('editExpFullPage');
+    if (fullPage) fullPage.href = '/edit_expense/' + id;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.edit-expense-btn');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const desc = btn.getAttribute('data-desc');
+    const category = btn.getAttribute('data-category');
+    const amount = btn.getAttribute('data-amount');
+    const date = btn.getAttribute('data-date');
+    openEditExpenseModal(id, desc, category, amount, date);
+});
+</script>
 {% endblock %}

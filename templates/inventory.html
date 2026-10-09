@@ -61,9 +61,7 @@
                         <label class="form-label">Sizes &amp; Stocks</label>
                         <div class="d-flex gap-1 flex-wrap mb-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary"
-                                onclick="applyPreset('letters')">M – XXXL</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary"
-                                onclick="applyPreset('numbers')">38 – 46</button>
+                                onclick="applyPreset()">38 – 46</button>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                 onclick="clearSizes()">Clear</button>
                         </div>
@@ -259,10 +257,8 @@
     function toggleSize(i) { sizes[i].checked = !sizes[i].checked; renderSizes(); }
     function updateStock(i, v) { sizes[i].stock = parseInt(v) || 0; }
     function removeSize(i) { sizes.splice(i, 1); renderSizes(); }
-    function applyPreset(t) {
-        sizes = t === 'letters'
-            ? ['M', 'L', 'XL', 'XXL', 'XXXL'].map(s => ({ size: s, checked: true, stock: 1 }))
-            : Array.from({ length: 9 }, (_, k) => ({ size: (38 + k).toString(), checked: true, stock: 1 }));
+    function applyPreset() {
+        sizes = ['38', '40', '42', '44', '46'].map(s => ({ size: s, checked: true, stock: 1 }));
         renderSizes();
     }
     function clearSizes() { sizes = []; renderSizes(); }
@@ -326,7 +322,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        applyPreset('letters');
+        applyPreset();
         filterAndSortInventory();
     });
 </script>
