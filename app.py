@@ -4,6 +4,9 @@ from io import BytesIO
 from collections import OrderedDict
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import selectinload, joinedload
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import openpyxl
@@ -22,32 +25,42 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Optimize SQLite performance with WAL mode, normal sync, memory temp store and 64MB cache
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA synchronous = NORMAL")
+    cursor.execute("PRAGMA cache_size = -64000")
+    cursor.execute("PRAGMA temp_store = MEMORY")
+    cursor.close()
+
 # --- MODELS ---
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sku = db.Column(db.String(50), unique=True, nullable=True) 
-    name = db.Column(db.String(100), nullable=False)
+    sku = db.Column(db.String(50), unique=True, nullable=True, index=True) 
+    name = db.Column(db.String(100), nullable=False, index=True)
     size = db.Column(db.String(10), nullable=False)
     cost_price = db.Column(db.Float, default=0.0)
     price = db.Column(db.Float, nullable=False)
-    stock = db.Column(db.Integer, default=0)
+    stock = db.Column(db.Integer, default=0, index=True)
     image = db.Column(db.String(100), nullable=True)
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    customer_name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20), nullable=False)
+    customer_name = db.Column(db.String(100), nullable=False, index=True)
+    phone = db.Column(db.String(20), nullable=False, index=True)
     address = db.Column(db.String(200), nullable=True)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     total_amount = db.Column(db.Float, default=0.0)
     profit = db.Column(db.Float, default=0.0)
-    status = db.Column(db.String(20), default='Pending')
+    status = db.Column(db.String(20), default='Pending', index=True)
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
     quantity = db.Column(db.Integer, nullable=False)
     discount = db.Column(db.Float, default=0.0)
     subtotal = db.Column(db.Float, nullable=False)
@@ -62,12 +75,12 @@ class Expense(db.Model):
     description = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False) # e.g. Rent, Marketing, Packaging
     amount = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
 class Investment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     note = db.Column(db.String(200)) # e.g., "Initial Capital" or "Dad's loan"
 
 # --- ROUTES ---
@@ -474,6 +487,7 @@ def api_revenue_trend():
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
     # Handle Manual Expense Addition
+    
     if request.method == 'POST':
         date_str = request.form.get('date')
         exp_date = datetime.utcnow()
@@ -549,8 +563,81 @@ def delete_expense(id):
 # ... (KEEP ALL YOUR EXISTING ROUTES FOR ORDERS, INVENTORY, EXPORT BELOW THIS) ...
 @app.route('/orders')
 def order_history():
-    all_orders = Order.query.order_by(Order.date.desc()).all()
-    return render_template('orders.html', orders=all_orders)
+    page = request.args.get('page', 1, type=int)
+    per_page_param = request.args.get('per_page', '50')
+    q = request.args.get('q', '').strip()
+    status_filter = request.args.get('status', '').strip()
+
+    # Determine per_page
+    if per_page_param == 'all':
+        per_page = 0
+    else:
+        try:
+            per_page = int(per_page_param)
+            if per_page not in [25, 50, 100, 200]:
+                per_page = 50
+        except ValueError:
+            per_page = 50
+
+    # Base query with eager loading for 0 N+1 queries
+    query = Order.query.options(
+        selectinload(Order.items).joinedload(OrderItem.product)
+    )
+
+    # Search filter
+    if q:
+        clean_id = q.lstrip('#').strip()
+        or_conditions = [
+            Order.customer_name.ilike(f"%{q}%"),
+            Order.phone.ilike(f"%{q}%"),
+            Order.address.ilike(f"%{q}%")
+        ]
+        if clean_id.isdigit():
+            or_conditions.append(Order.id == int(clean_id))
+        
+        # Match order items product name
+        matching_order_ids = [
+            r[0] for r in db.session.query(OrderItem.order_id).filter(
+                OrderItem.product_name.ilike(f"%{q}%")
+            ).distinct().all()
+        ]
+        if matching_order_ids:
+            or_conditions.append(Order.id.in_(matching_order_ids))
+
+        query = query.filter(db.or_(*or_conditions))
+
+    # Status filter
+    if status_filter and status_filter.lower() != 'all':
+        query = query.filter(Order.status == status_filter)
+
+    query = query.order_by(Order.date.desc())
+
+    # Quick summary statistics
+    total_all_orders = Order.query.count()
+    status_counts_raw = db.session.query(Order.status, db.func.count(Order.id)).group_by(Order.status).all()
+    status_counts = {s: c for s, c in status_counts_raw}
+    status_counts['all'] = total_all_orders
+
+    if per_page == 0:
+        orders = query.all()
+        pagination = None
+        filtered_count = len(orders)
+    else:
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        orders = pagination.items
+        filtered_count = pagination.total
+
+    return render_template(
+        'orders.html',
+        orders=orders,
+        pagination=pagination,
+        total_all_orders=total_all_orders,
+        filtered_count=filtered_count,
+        status_counts=status_counts,
+        q=q,
+        status_filter=status_filter,
+        per_page=per_page_param
+    )
 
 # ══════════════════════════════════════════════════════════════
 # MONTHLY BALANCE SHEET & FINANCIAL REPORTING ENGINE
@@ -1117,8 +1204,432 @@ def inventory():
             
         return redirect(url_for('inventory'))
     
-    products = Product.query.order_by(Product.id.desc()).all()
-    return render_template('inventory.html', products=products)
+    page = request.args.get('page', 1, type=int)
+    per_page_param = request.args.get('per_page', '50')
+    q = request.args.get('search', '').strip()
+    sort_by = request.args.get('sort', 'newest')
+    stock_filter = request.args.get('stock_filter', 'all')
+
+    # Determine per_page
+    if per_page_param == 'all':
+        per_page = 0
+    else:
+        try:
+            per_page = int(per_page_param)
+            if per_page not in [25, 50, 100, 200]:
+                per_page = 50
+        except ValueError:
+            per_page = 50
+
+    query = Product.query
+
+    if q:
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(f"%{q}%"),
+                Product.sku.ilike(f"%{q}%")
+            )
+        )
+
+    if stock_filter == 'low':
+        query = query.filter(Product.stock > 0, Product.stock < 5)
+    elif stock_filter == 'out':
+        query = query.filter(Product.stock == 0)
+    elif stock_filter == 'in':
+        query = query.filter(Product.stock >= 5)
+
+    # Subquery for total sold to enable sorting by outflow
+    sold_subq = (
+        db.session.query(
+            OrderItem.product_id,
+            db.func.sum(OrderItem.quantity).label('total_sold')
+        ).group_by(OrderItem.product_id).subquery()
+    )
+    query = query.outerjoin(sold_subq, Product.id == sold_subq.c.product_id)
+
+    if sort_by == 'sold_desc':
+        query = query.order_by(db.func.coalesce(sold_subq.c.total_sold, 0).desc(), Product.id.desc())
+    elif sort_by == 'oldest':
+        query = query.order_by(Product.id.asc())
+    elif sort_by == 'name_asc':
+        query = query.order_by(Product.name.asc())
+    elif sort_by == 'name_desc':
+        query = query.order_by(Product.name.desc())
+    elif sort_by == 'price_desc':
+        query = query.order_by(Product.price.desc())
+    elif sort_by == 'price_asc':
+        query = query.order_by(Product.price.asc())
+    elif sort_by == 'stock_asc':
+        query = query.order_by(Product.stock.asc())
+    elif sort_by == 'stock_desc':
+        query = query.order_by(Product.stock.desc())
+    else:  # newest
+        query = query.order_by(Product.id.desc())
+
+    total_products = Product.query.count()
+    low_stock_count = Product.query.filter(Product.stock > 0, Product.stock < 5).count()
+    out_stock_count = Product.query.filter(Product.stock == 0).count()
+
+    # Total catalog-wide piece metrics
+    total_inventory_stock = sum(p.stock for p in Product.query.all())
+    total_inventory_sold = db.session.query(db.func.sum(OrderItem.quantity)).scalar() or 0
+    total_inventory_pieces = total_inventory_stock + total_inventory_sold
+    total_inventory_pct = round((total_inventory_sold / total_inventory_pieces * 100), 1) if total_inventory_pieces > 0 else 0.0
+
+    if per_page == 0:
+        products = query.all()
+        pagination = None
+        filtered_count = len(products)
+    else:
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        products = pagination.items
+        filtered_count = pagination.total
+
+    # Single aggregation query for sold quantity of displayed products
+    prod_ids = [p.id for p in products]
+    sold_counts = {}
+    if prod_ids:
+        sold_counts = dict(
+            db.session.query(
+                OrderItem.product_id,
+                db.func.sum(OrderItem.quantity)
+            ).filter(OrderItem.product_id.in_(prod_ids))\
+             .group_by(OrderItem.product_id).all()
+        )
+
+    for p in products:
+        p.sold_pieces = int(sold_counts.get(p.id, 0))
+        p.total_pieces = p.stock + p.sold_pieces
+        p.pct_gone = round((p.sold_pieces / p.total_pieces * 100), 1) if p.total_pieces > 0 else 0.0
+
+    return render_template(
+        'inventory.html',
+        products=products,
+        pagination=pagination,
+        total_products=total_products,
+        filtered_count=filtered_count,
+        low_stock_count=low_stock_count,
+        out_stock_count=out_stock_count,
+        total_inventory_pieces=total_inventory_pieces,
+        total_inventory_sold=total_inventory_sold,
+        total_inventory_stock=total_inventory_stock,
+        total_inventory_pct=total_inventory_pct,
+        search_query=q,
+        sort_by=sort_by,
+        stock_filter=stock_filter,
+        per_page=per_page_param
+    )
+
+@app.route('/api/inventory')
+def api_inventory():
+    page = request.args.get('page', 1, type=int)
+    per_page_param = request.args.get('per_page', '50')
+    q = request.args.get('search', '').strip()
+    sort_by = request.args.get('sort', 'newest')
+    stock_filter = request.args.get('stock_filter', 'all')
+
+    if per_page_param == 'all':
+        per_page = 0
+    else:
+        try:
+            per_page = int(per_page_param)
+            if per_page not in [25, 50, 100, 200]:
+                per_page = 50
+        except ValueError:
+            per_page = 50
+
+    query = Product.query
+
+    if q:
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(f"%{q}%"),
+                Product.sku.ilike(f"%{q}%")
+            )
+        )
+
+    if stock_filter == 'low':
+        query = query.filter(Product.stock > 0, Product.stock < 5)
+    elif stock_filter == 'out':
+        query = query.filter(Product.stock == 0)
+    elif stock_filter == 'in':
+        query = query.filter(Product.stock >= 5)
+
+    sold_subq = (
+        db.session.query(
+            OrderItem.product_id,
+            db.func.sum(OrderItem.quantity).label('total_sold')
+        ).group_by(OrderItem.product_id).subquery()
+    )
+    query = query.outerjoin(sold_subq, Product.id == sold_subq.c.product_id)
+
+    if sort_by == 'sold_desc':
+        query = query.order_by(db.func.coalesce(sold_subq.c.total_sold, 0).desc(), Product.id.desc())
+    elif sort_by == 'oldest':
+        query = query.order_by(Product.id.asc())
+    elif sort_by == 'name_asc':
+        query = query.order_by(Product.name.asc())
+    elif sort_by == 'name_desc':
+        query = query.order_by(Product.name.desc())
+    elif sort_by == 'price_desc':
+        query = query.order_by(Product.price.desc())
+    elif sort_by == 'price_asc':
+        query = query.order_by(Product.price.asc())
+    elif sort_by == 'stock_asc':
+        query = query.order_by(Product.stock.asc())
+    elif sort_by == 'stock_desc':
+        query = query.order_by(Product.stock.desc())
+    else:
+        query = query.order_by(Product.id.desc())
+
+    total_products = Product.query.count()
+    low_stock_count = Product.query.filter(Product.stock > 0, Product.stock < 5).count()
+    out_stock_count = Product.query.filter(Product.stock == 0).count()
+
+    total_inventory_stock = sum(p.stock for p in Product.query.all())
+    total_inventory_sold = db.session.query(db.func.sum(OrderItem.quantity)).scalar() or 0
+    total_inventory_pieces = total_inventory_stock + total_inventory_sold
+    total_inventory_pct = round((total_inventory_sold / total_inventory_pieces * 100), 1) if total_inventory_pieces > 0 else 0.0
+
+    if per_page == 0:
+        prods = query.all()
+        pagination_data = {
+            'total': len(prods),
+            'page': 1,
+            'pages': 1,
+            'has_prev': False,
+            'has_next': False,
+            'per_page': 'all'
+        }
+    else:
+        pag = query.paginate(page=page, per_page=per_page, error_out=False)
+        prods = pag.items
+        pagination_data = {
+            'total': pag.total,
+            'page': pag.page,
+            'pages': pag.pages,
+            'has_prev': pag.has_prev,
+            'has_next': pag.has_next,
+            'per_page': per_page
+        }
+
+    prod_ids = [p.id for p in prods]
+    sold_counts = {}
+    if prod_ids:
+        sold_counts = dict(
+            db.session.query(
+                OrderItem.product_id,
+                db.func.sum(OrderItem.quantity)
+            ).filter(OrderItem.product_id.in_(prod_ids))\
+             .group_by(OrderItem.product_id).all()
+        )
+
+    items = []
+    for p in prods:
+        sold_qty = int(sold_counts.get(p.id, 0))
+        tot_pieces = p.stock + sold_qty
+        pct = round((sold_qty / tot_pieces * 100), 1) if tot_pieces > 0 else 0.0
+        items.append({
+            'id': p.id,
+            'sku': p.sku or '',
+            'name': p.name,
+            'size': p.size,
+            'cost_price': p.cost_price,
+            'price': p.price,
+            'stock': p.stock,
+            'sold_pieces': sold_qty,
+            'total_pieces': tot_pieces,
+            'pct_gone': pct,
+            'image': p.image or None
+        })
+
+    return jsonify({
+        'products': items,
+        'pagination': pagination_data,
+        'total_products': total_products,
+        'low_stock_count': low_stock_count,
+        'out_stock_count': out_stock_count,
+        'total_inventory_pieces': total_inventory_pieces,
+        'total_inventory_sold': total_inventory_sold,
+        'total_inventory_stock': total_inventory_stock,
+        'total_inventory_pct': total_inventory_pct
+    })
+
+# ══════════════════════════════════════════════════════════════
+# PRODUCT PIECES MOVEMENT & BUYERS ENGINE
+# ══════════════════════════════════════════════════════════════
+
+def get_stock_batch_siblings(product):
+    """
+    Finds only the product size variants that belong to the EXACT SAME stock batch:
+    - If a base SKU exists (e.g. '6269-38' and '6269-40'), match only products sharing that base SKU.
+    - If an image exists, match products with identical image, name, cost_price, price,
+      and created in the same submission window (ID within +/- 8).
+    - Ensures each size is unique in the batch.
+    - Never groups across different stock uploads with generic names like 'kurtha' or 'dress'.
+    """
+    if product.sku and '-' in product.sku:
+        base_sku = product.sku.rsplit('-', 1)[0]
+        sibs = Product.query.filter(
+            Product.sku.like(f"{base_sku}-%"),
+            Product.name == product.name
+        ).order_by(Product.size.asc()).all()
+        sizes = [s.size for s in sibs]
+        if len(sibs) > 1 and len(sizes) == len(set(sizes)):
+            return sibs
+
+    if product.image:
+        sibs = Product.query.filter(
+            Product.image == product.image,
+            Product.name == product.name,
+            Product.cost_price == product.cost_price,
+            Product.price == product.price,
+            Product.id >= product.id - 8,
+            Product.id <= product.id + 8
+        ).order_by(Product.size.asc()).all()
+        sizes = [s.size for s in sibs]
+        if len(sibs) > 1 and len(sizes) == len(set(sizes)):
+            return sibs
+
+    return [product]
+
+def get_product_movement_data(product_id):
+    """
+    Computes complete pieces movement and buyer attribution for this specific stock item:
+    - How many pieces have gone out (sold) OF THIS STOCK ONLY
+    - Out of how many total pieces (current stock + sold pieces) OF THIS STOCK ONLY
+    - Full list of who took those pieces (customer name, phone, order #, date, status, pieces taken)
+    - Only size variants belonging to the exact same stock batch (if added together)
+    """
+    product = Product.query.get_or_404(product_id)
+
+    # Order items for this specific product (size) with eager loaded Order
+    items = (
+        OrderItem.query
+        .options(joinedload(OrderItem.order))
+        .filter_by(product_id=product.id)
+        .all()
+    )
+    # Sort items by order date desc (newest orders first)
+    items.sort(key=lambda x: (x.order.date if (x.order and x.order.date) else datetime.min), reverse=True)
+
+    sold_pieces = sum(it.quantity for it in items)
+    total_pieces = product.stock + sold_pieces
+    pct_gone = round((sold_pieces / total_pieces * 100), 1) if total_pieces > 0 else 0.0
+    total_revenue = sum(it.subtotal for it in items)
+
+    status_summary = {'Delivered': 0, 'Shipped': 0, 'Pending': 0, 'Returned': 0}
+    buyers = []
+    customer_counts = {}
+
+    for it in items:
+        if not it.order:
+            continue
+        st = it.order.status or 'Pending'
+        if st in status_summary:
+            status_summary[st] += it.quantity
+        else:
+            status_summary[st] = status_summary.get(st, 0) + it.quantity
+
+        c_name = it.order.customer_name or 'Unknown Customer'
+        customer_counts[c_name] = customer_counts.get(c_name, 0) + it.quantity
+
+        buyers.append({
+            'order_id': it.order.id,
+            'customer_name': c_name,
+            'phone': it.order.phone or '',
+            'address': it.order.address or '',
+            'date': it.order.date.strftime('%Y-%m-%d %H:%M') if it.order.date else '',
+            'date_formatted': it.order.date.strftime('%b %d, %Y') if it.order.date else '',
+            'status': st,
+            'quantity': it.quantity,
+            'discount': it.discount or 0.0,
+            'subtotal': it.subtotal,
+            'product_name': it.product_name or f"{product.name} ({product.size})"
+        })
+
+    # Only include sizes from the EXACT SAME stock batch (not all other stocks in store)
+    sibling_products = get_stock_batch_siblings(product)
+
+    siblings_summary = []
+    total_family_stock = 0
+    total_family_sold = 0
+    
+    # Only calculate sibling batch if there's genuinely more than 1 size in this stock batch
+    if len(sibling_products) > 1:
+        all_prod_ids = [p.id for p in sibling_products]
+        sibling_sold_map = dict(
+            db.session.query(
+                OrderItem.product_id,
+                db.func.sum(OrderItem.quantity)
+            ).filter(OrderItem.product_id.in_(all_prod_ids))\
+             .group_by(OrderItem.product_id).all()
+        )
+        for sib in sibling_products:
+            s_sold = int(sibling_sold_map.get(sib.id, 0))
+            s_total = sib.stock + s_sold
+            s_pct = round((s_sold / s_total * 100), 1) if s_total > 0 else 0.0
+            total_family_stock += sib.stock
+            total_family_sold += s_sold
+            siblings_summary.append({
+                'id': sib.id,
+                'sku': sib.sku or '',
+                'size': sib.size,
+                'stock': sib.stock,
+                'cost_price': sib.cost_price,
+                'price': sib.price,
+                'sold_pieces': s_sold,
+                'total_pieces': s_total,
+                'pct_gone': s_pct,
+                'is_current': (sib.id == product.id)
+            })
+    else:
+        # Single stock item - no other batch sizes
+        total_family_stock = product.stock
+        total_family_sold = sold_pieces
+
+    total_family_pieces = total_family_stock + total_family_sold
+    total_family_pct = round((total_family_sold / total_family_pieces * 100), 1) if total_family_pieces > 0 else 0.0
+
+    return {
+        'product': {
+            'id': product.id,
+            'sku': product.sku or '',
+            'name': product.name,
+            'size': product.size,
+            'cost_price': product.cost_price,
+            'price': product.price,
+            'stock': product.stock,
+            'image': product.image or '',
+            'sold_pieces': sold_pieces,
+            'total_pieces': total_pieces,
+            'pct_gone': pct_gone,
+            'total_revenue': total_revenue
+        },
+        'buyers': buyers,
+        'unique_buyers_count': len(customer_counts),
+        'total_orders_count': len(buyers),
+        'status_summary': status_summary,
+        'siblings': siblings_summary,
+        'family_summary': {
+            'total_stock': total_family_stock,
+            'total_sold': total_family_sold,
+            'total_pieces': total_family_pieces,
+            'pct_gone': total_family_pct
+        }
+    }
+
+@app.route('/api/product_movement/<int:id>')
+def api_product_movement(id):
+    """JSON endpoint for instant client-side modal inspection of pieces and buyers."""
+    data = get_product_movement_data(id)
+    return jsonify(data)
+
+@app.route('/product_movement/<int:id>')
+def product_movement(id):
+    """Full-page view displaying pieces gone out vs in stock and who took them."""
+    data = get_product_movement_data(id)
+    return render_template('product_movement.html', **data)
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 def edit_product(id):
@@ -1138,7 +1649,8 @@ def edit_product(id):
             product.image = filename
         db.session.commit()
         return redirect(url_for('inventory'))
-    return render_template('edit_product.html', p=product)
+    movement = get_product_movement_data(id)
+    return render_template('edit_product.html', p=product, movement=movement)
 
 @app.route('/new_order')
 def new_order():

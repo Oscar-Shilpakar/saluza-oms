@@ -1,0 +1,354 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- ── PAGE HEADER & BREADCRUMB ── -->
+<div class="mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1" style="font-size: 0.76rem;">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/inventory" class="text-decoration-none text-muted">Inventory</a></li>
+            <li class="breadcrumb-item active text-gold" aria-current="page">{{ product.name }} ({{ product.size }})</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="page-header">
+    <div>
+        <div class="page-header-eyebrow">
+            <div class="page-header-eyebrow-line"></div>
+            <span class="page-header-eyebrow-text">Pieces Movement &amp; Attribution</span>
+        </div>
+        <h1>Pieces <span class="gold">Movement &amp; Buyers</span></h1>
+        <p class="page-header-sub">See how many pieces have gone out of total stock and who ordered them.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print Report
+        </button>
+        <a href="/edit_product/{{ product.id }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit Product
+        </a>
+        <a href="/inventory" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+        </a>
+    </div>
+</div>
+
+<!-- ── PRODUCT HERO & 4 KPI SUMMARY CARDS ── -->
+<div class="row g-3 mb-4">
+    <!-- PRODUCT HERO CARD -->
+    <div class="col-lg-4 col-md-5">
+        <div class="card h-100">
+            <div class="card-body d-flex gap-3 align-items-center">
+                {% if product.image %}
+                <img src="{{ url_for('static', filename='uploads/' + product.image) }}"
+                    style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line); flex-shrink: 0;"
+                    alt="{{ product.name }}">
+                {% else %}
+                <div style="width: 80px; height: 80px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0;">
+                    👗
+                </div>
+                {% endif %}
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-center gap-1 mb-1">
+                        <span class="badge bg-gold-tint text-gold font-monospace" style="font-size: 0.72rem;">{{ product.sku or 'NO-SKU' }}</span>
+                        <span class="badge bg-secondary" style="font-size: 0.72rem;">Size {{ product.size }}</span>
+                    </div>
+                    <h4 class="mb-1 text-truncate" style="font-size: 1.15rem; font-weight: 700; color: var(--text);">{{ product.name }}</h4>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Selling: <strong class="text-gold">Rs. {{ "{:,.2f}".format(product.price) }}</strong> &nbsp;|&nbsp; Cost: Rs. {{ "{:,.2f}".format(product.cost_price) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 KPI STATS -->
+    <div class="col-lg-8 col-md-7">
+        <div class="row g-2 h-100">
+            <div class="col-6 col-sm-3">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-label">Total Pieces</div>
+                    <div class="stat-gold-line"></div>
+                    <div class="stat-value text-gold">{{ product.total_pieces }}</div>
+                    <div class="stat-sub">Stock + Sold</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-label">Pieces Gone Out</div>
+                    <div class="stat-gold-line" style="background: var(--danger);"></div>
+                    <div class="stat-value" style="color: var(--danger);">{{ product.sold_pieces }}</div>
+                    <div class="stat-sub">{{ product.pct_gone }}% sell-through</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-label">Remaining Stock</div>
+                    <div class="stat-gold-line" style="background: var(--success);"></div>
+                    <div class="stat-value" style="color: var(--success);">{{ product.stock }}</div>
+                    <div class="stat-sub">Available on shelf</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="stat-card h-100 p-3">
+                    <div class="stat-label">Revenue Generated</div>
+                    <div class="stat-gold-line"></div>
+                    <div class="stat-value text-gold" style="font-size: 1.25rem;">Rs. {{ "{:,.0f}".format(product.total_revenue) }}</div>
+                    <div class="stat-sub">{{ total_orders_count }} orders ({{ unique_buyers_count }} buyers)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── PIECES OUTFLOW PROGRESS BAR ── -->
+<div class="card mb-4">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <div>
+                <span style="font-weight: 700; font-size: 0.9rem; color: var(--text);">
+                    <i class="bi bi-pie-chart-fill me-1 text-gold"></i>Outflow Ratio:
+                </span>
+                <span class="text-gold fw-bold ms-1 font-monospace" style="font-size: 1.05rem;">
+                    {{ product.sold_pieces }} gone out of {{ product.total_pieces }} total pieces
+                </span>
+                <span class="badge bg-gold-tint text-gold ms-2">{{ product.pct_gone }}% gone</span>
+            </div>
+            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.78rem;">
+                <span><span class="status-indicator" style="background: var(--gold);"></span> Gone Out: <strong>{{ product.sold_pieces }} pcs</strong></span>
+                <span><span class="status-indicator" style="background: var(--surface-4);"></span> On Shelf: <strong>{{ product.stock }} pcs</strong></span>
+            </div>
+        </div>
+
+        <div class="progress" style="height: 14px; border-radius: 7px; background: var(--surface-3);">
+            <div class="progress-bar" style="width: {{ product.pct_gone }}%; background: linear-gradient(to right, var(--gold-muted), var(--gold)); transition: width 0.5s ease;">
+                {% if product.pct_gone >= 10 %}{{ product.pct_gone }}%{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if siblings and siblings|length > 1 %}
+<!-- ── SIZES IN THIS STOCK BATCH ── -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <i class="bi bi-diagram-3 me-2 text-gold"></i>Sizes in this Stock Batch
+        </div>
+        <span class="badge bg-gold-tint text-gold font-monospace">
+            Batch Total: {{ family_summary.total_sold }} / {{ family_summary.total_pieces }} pieces gone ({{ family_summary.pct_gone }}%)
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Size Variant</th>
+                        <th>SKU</th>
+                        <th>Price</th>
+                        <th style="text-align: center;">Pieces Gone Out</th>
+                        <th style="text-align: center;">In Stock</th>
+                        <th style="text-align: center;">Total Pieces</th>
+                        <th style="width: 140px;">Outflow %</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sib in siblings %}
+                    <tr class="{% if sib.is_current %}table-active{% endif %}">
+                        <td>
+                            <span class="badge {% if sib.is_current %}bg-gold text-white{% else %}bg-secondary{% endif %}" style="font-size: 0.75rem;">
+                                Size {{ sib.size }}
+                            </span>
+                            {% if sib.is_current %}<span class="badge bg-gold-tint text-gold ms-1">Current</span>{% endif %}
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.8rem; color: var(--gold);">{{ sib.sku or '—' }}</td>
+                        <td style="font-family: 'Oswald'; font-weight: 600;">Rs. {{ "{:,.2f}".format(sib.price) }}</td>
+                        <td style="text-align: center; font-weight: 700; color: var(--danger);">{{ sib.sold_pieces }}</td>
+                        <td style="text-align: center; font-weight: 700; color: var(--success);">{{ sib.stock }}</td>
+                        <td style="text-align: center; font-weight: 700;">{{ sib.total_pieces }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-fill" style="height: 6px; background: var(--surface-3);">
+                                    <div class="progress-bar" style="width: {{ sib.pct_gone }}%; background: var(--gold);"></div>
+                                </div>
+                                <span style="font-size: 0.72rem; color: var(--text-tertiary); min-width: 38px;">{{ sib.pct_gone }}%</span>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if not sib.is_current %}
+                            <a href="/product_movement/{{ sib.id }}" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">
+                                View Movement
+                            </a>
+                            {% else %}
+                            <span class="text-muted" style="font-size: 0.72rem;">Viewing</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ── WHO TOOK THOSE PIECES (BUYERS TABLE) ── -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span><i class="bi bi-people-fill me-2 text-gold"></i>Who Took Those Pieces</span>
+            <span class="badge bg-gold" id="buyerCountBadge">{{ buyers|length }} records</span>
+        </div>
+
+        <!-- LIVE FILTER FOR BUYERS -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary active buyer-status-btn" onclick="setStatusFilter('all')">All</button>
+                <button type="button" class="btn btn-outline-secondary buyer-status-btn" onclick="setStatusFilter('Delivered')">Delivered ({{ status_summary.Delivered }})</button>
+                <button type="button" class="btn btn-outline-secondary buyer-status-btn" onclick="setStatusFilter('Shipped')">Shipped ({{ status_summary.Shipped }})</button>
+                <button type="button" class="btn btn-outline-secondary buyer-status-btn" onclick="setStatusFilter('Pending')">Pending ({{ status_summary.Pending }})</button>
+                <button type="button" class="btn btn-outline-secondary buyer-status-btn" onclick="setStatusFilter('Returned')">Returned ({{ status_summary.Returned }})</button>
+            </div>
+            <div class="input-group input-group-sm" style="width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="buyerSearchInput" class="form-control" placeholder="Search customer, phone..." oninput="handleBuyerSearch()">
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 90px;">Order #</th>
+                        <th>Customer Name</th>
+                        <th style="width: 130px;">Contact Phone</th>
+                        <th>Delivery Address</th>
+                        <th style="width: 110px; text-align: center;">Pieces Taken</th>
+                        <th style="width: 120px;">Order Date</th>
+                        <th style="width: 95px;">Status</th>
+                        <th style="width: 110px; text-align: right;">Amount Paid</th>
+                        <th style="width: 80px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="buyersTableBody">
+                    {% if buyers %}
+                    {% for b in buyers %}
+                    <tr class="buyer-row" data-name="{{ b.customer_name|lower }}" data-phone="{{ b.phone }}" data-order="{{ b.order_id }}" data-status="{{ b.status }}">
+                        <td>
+                            <a href="/edit_order/{{ b.order_id }}" class="text-decoration-none" style="font-family: 'Oswald'; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;">
+                                #{{ b.order_id }}
+                            </a>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; font-size: 0.88rem; color: var(--text);">{{ b.customer_name }}</div>
+                        </td>
+                        <td>
+                            {% if b.phone %}
+                            <a href="tel:{{ b.phone }}" class="text-decoration-none" style="color: var(--text-secondary); font-size: 0.8rem;">
+                                <i class="bi bi-telephone me-1 text-gold"></i>{{ b.phone }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.address %}
+                            <div style="font-size: 0.78rem; color: var(--text-secondary); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.address }}">
+                                <i class="bi bi-geo-alt me-1 text-tertiary"></i>{{ b.address }}
+                            </div>
+                            {% else %}
+                            <span class="text-muted" style="font-size: 0.78rem;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge bg-gold-tint text-gold font-monospace" style="font-size: 0.85rem; font-weight: 700; padding: 0.3rem 0.65rem;">
+                                {{ b.quantity }} {{ 'pc' if b.quantity == 1 else 'pcs' }}
+                            </span>
+                        </td>
+                        <td style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">
+                            {{ b.date_formatted or b.date }}
+                        </td>
+                        <td>
+                            {% if b.status == 'Delivered' %}
+                            <span class="badge bg-success-tint text-success" style="font-size: 0.7rem;">Delivered</span>
+                            {% elif b.status == 'Shipped' %}
+                            <span class="badge bg-info-tint text-info" style="font-size: 0.7rem;">Shipped</span>
+                            {% elif b.status == 'Returned' %}
+                            <span class="badge bg-danger-tint text-danger" style="font-size: 0.7rem;">Returned</span>
+                            {% else %}
+                            <span class="badge bg-warning-tint text-warning" style="font-size: 0.7rem;">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--text); text-align: right; white-space: nowrap;">
+                            Rs. {{ "{:,.2f}".format(b.subtotal) }}
+                        </td>
+                        <td style="text-align: center;">
+                            <a href="/edit_order/{{ b.order_id }}" class="btn btn-sm btn-outline-warning" title="Edit Order #{{ b.order_id }}" style="padding: 0.2rem 0.45rem;">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr id="emptyBuyersRow">
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <div style="font-size: 2.2rem; opacity: 0.5; margin-bottom: 0.5rem;">📦</div>
+                            <h5 style="font-weight: 600;">All {{ product.stock }} pieces are still in inventory!</h5>
+                            <p class="mb-0" style="font-size: 0.85rem; color: var(--text-tertiary);">No customer orders have taken pieces of this product yet.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStatusFilter = 'all';
+
+    function setStatusFilter(status) {
+        currentStatusFilter = status;
+        document.querySelectorAll('.buyer-status-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.toLowerCase().startsWith(status.toLowerCase()));
+        });
+        filterBuyerRows();
+    }
+
+    function handleBuyerSearch() {
+        filterBuyerRows();
+    }
+
+    function filterBuyerRows() {
+        const query = (document.getElementById('buyerSearchInput').value || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('.buyer-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name') || '';
+            const phone = row.getAttribute('data-phone') || '';
+            const orderId = row.getAttribute('data-order') || '';
+            const status = row.getAttribute('data-status') || '';
+
+            const matchesQuery = !query || name.includes(query) || phone.includes(query) || orderId.includes(query);
+            const matchesStatus = (currentStatusFilter === 'all') || (status.toLowerCase() === currentStatusFilter.toLowerCase());
+
+            if (matchesQuery && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('buyerCountBadge').innerText = `${visibleCount} ${visibleCount === 1 ? 'record' : 'records'}`;
+    }
+</script>
+
+{% endblock %}
+

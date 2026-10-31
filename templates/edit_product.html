@@ -14,10 +14,13 @@
     </a>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-        <div class="card">
-            <div class="card-header">Product Specifications</div>
+<div class="row g-4">
+    <!-- LEFT COLUMN: PRODUCT SPECIFICATIONS FORM -->
+    <div class="col-lg-5 col-xl-5">
+        <div class="card" style="position: sticky; top: 1.5rem;">
+            <div class="card-header">
+                <i class="bi bi-sliders me-2 text-gold"></i>Product Specifications
+            </div>
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data">
 
@@ -78,8 +81,16 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Stock Quantity</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label mb-0">Stock Quantity</label>
+                            <span style="font-size: 0.72rem; color: var(--text-tertiary);">
+                                Total accounted: <strong>{{ movement.product.total_pieces }} pieces</strong>
+                            </span>
+                        </div>
                         <input type="number" name="stock" class="form-control" value="{{ p.stock }}" required>
+                        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.35rem;">
+                            <i class="bi bi-info-circle me-1"></i>{{ movement.product.sold_pieces }} pieces have gone out via customer orders.
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -89,6 +100,176 @@
                         <a href="/inventory" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: PIECES OUTFLOW & WHO TOOK THEM -->
+    <div class="col-lg-7 col-xl-7">
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <i class="bi bi-boxes me-2 text-gold"></i>This Stock Outflow (Size {{ p.size }})
+                </div>
+                <span class="badge bg-gold-tint text-gold font-monospace" style="font-size: 0.76rem;">
+                    {{ movement.product.sold_pieces }} / {{ movement.product.total_pieces }} gone out ({{ movement.product.pct_gone }}%)
+                </span>
+            </div>
+            <div class="card-body">
+                <!-- 4 KPI SUMMARY BOXES -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded border" style="background: var(--surface-2);">
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700;">Total Pieces</div>
+                            <div style="font-family: 'Oswald'; font-size: 1.35rem; font-weight: 700; color: var(--gold);">{{ movement.product.total_pieces }}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary);">Stock + Sold</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded border" style="background: var(--surface-2);">
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700;">Gone Out</div>
+                            <div style="font-family: 'Oswald'; font-size: 1.35rem; font-weight: 700; color: var(--danger);">{{ movement.product.sold_pieces }}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary);">{{ movement.product.pct_gone }}% of this stock</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded border" style="background: var(--surface-2);">
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700;">Remaining</div>
+                            <div style="font-family: 'Oswald'; font-size: 1.35rem; font-weight: 700; color: var(--success);">{{ movement.product.stock }}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary);">In shelf stock</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-2 rounded border" style="background: var(--surface-2);">
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 700;">Revenue</div>
+                            <div style="font-family: 'Oswald'; font-size: 1.15rem; font-weight: 700; color: var(--text); white-space: nowrap;">Rs. {{ "{:,.0f}".format(movement.product.total_revenue) }}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-tertiary);">{{ movement.total_orders_count }} orders</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROGRESS BAR -->
+                <div class="p-3 rounded border mb-3" style="background: var(--surface-2);">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.76rem;">
+                        <span style="font-weight: 600; color: var(--text);">Outflow of This Stock</span>
+                        <span class="text-gold fw-bold">{{ movement.product.sold_pieces }} gone out of {{ movement.product.total_pieces }} pieces</span>
+                    </div>
+                    <div class="progress" style="height: 8px; border-radius: 4px; background: var(--surface-3);">
+                        <div class="progress-bar" style="width: {{ movement.product.pct_gone }}%; background: linear-gradient(to right, var(--gold-muted), var(--gold));"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 0.68rem;">
+                        <span><i class="bi bi-arrow-up-right me-1 text-danger"></i>{{ movement.product.sold_pieces }} Gone Out</span>
+                        <span><i class="bi bi-box me-1 text-success"></i>{{ movement.product.stock }} Left in Stock</span>
+                    </div>
+                </div>
+
+                {% if movement.siblings and movement.siblings|length > 1 %}
+                <!-- SIZES IN THIS STOCK BATCH -->
+                <div class="mb-3 p-2 rounded border" style="background: var(--surface-2);">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em;">
+                            <i class="bi bi-diagram-3 me-1 text-gold"></i>Other Sizes in this Stock Batch (Total: {{ movement.family_summary.total_sold }}/{{ movement.family_summary.total_pieces }} pieces)
+                        </span>
+                    </div>
+                    <div class="d-flex gap-1 flex-wrap">
+                        {% for sib in movement.siblings %}
+                        <a href="/edit_product/{{ sib.id }}" class="badge {% if sib.is_current %}bg-primary text-white{% else %}bg-light text-dark border{% endif %} text-decoration-none py-1 px-2" style="font-size: 0.72rem;">
+                            Size {{ sib.size }}: <strong>{{ sib.sold_pieces }}/{{ sib.total_pieces }}</strong> gone ({{ sib.stock }} left) {% if sib.is_current %}(Current){% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- WHO TOOK THOSE PIECES TABLE -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold" style="font-size: 0.88rem; color: var(--text);">
+                        <i class="bi bi-people-fill me-1 text-gold"></i>Who Took Pieces of this Stock (Size {{ p.size }})
+                    </h6>
+                    <span class="badge bg-gold-tint text-gold" style="font-size: 0.7rem;">{{ movement.buyers|length }} records</span>
+                </div>
+
+                <div class="table-responsive border rounded" style="max-height: 380px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead style="position: sticky; top: 0; background: #FFFFFF; z-index: 1;">
+                            <tr>
+                                <th>Customer</th>
+                                <th style="width: 100px;">Contact</th>
+                                <th style="width: 85px; text-align: center;">Pieces Taken</th>
+                                <th style="width: 85px;">Order #</th>
+                                <th style="width: 90px;">Date</th>
+                                <th style="width: 80px;">Status</th>
+                                <th style="width: 85px; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if movement.buyers %}
+                            {% for b in movement.buyers %}
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 600; font-size: 0.82rem; color: var(--text);">{{ b.customer_name }}</div>
+                                    {% if b.address %}
+                                    <div style="font-size: 0.68rem; color: var(--text-tertiary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ b.address }}">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ b.address }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.75rem;">
+                                    {% if b.phone %}
+                                    <a href="tel:{{ b.phone }}" class="text-decoration-none" style="color: var(--text-secondary);">
+                                        <i class="bi bi-telephone me-1 text-gold"></i>{{ b.phone }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge bg-gold-tint text-gold font-monospace" style="font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.5rem;">
+                                        {{ b.quantity }} {{ 'pc' if b.quantity == 1 else 'pcs' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="/edit_order/{{ b.order_id }}" class="text-decoration-none" style="font-family: 'Oswald'; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;" title="Edit Order #{{ b.order_id }}">
+                                        #{{ b.order_id }} <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.62rem;"></i>
+                                    </a>
+                                </td>
+                                <td style="font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap;">
+                                    {{ b.date_formatted or b.date }}
+                                </td>
+                                <td>
+                                    {% if b.status == 'Delivered' %}
+                                    <span class="badge bg-success-tint text-success" style="font-size: 0.62rem;">Delivered</span>
+                                    {% elif b.status == 'Shipped' %}
+                                    <span class="badge bg-info-tint text-info" style="font-size: 0.62rem;">Shipped</span>
+                                    {% elif b.status == 'Returned' %}
+                                    <span class="badge bg-danger-tint text-danger" style="font-size: 0.62rem;">Returned</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-tint text-warning" style="font-size: 0.62rem;">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-family: 'Oswald'; font-weight: 600; font-size: 0.82rem; color: var(--text); text-align: right; white-space: nowrap;">
+                                    Rs. {{ "{:,.2f}".format(b.subtotal) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <div style="font-size: 1.6rem; opacity: 0.5; margin-bottom: 0.3rem;">📦</div>
+                                    <div style="font-weight: 500; font-size: 0.85rem;">All {{ movement.product.stock }} pieces are still in stock.</div>
+                                    <small style="color: var(--text-tertiary);">No customer orders have taken pieces of this item yet.</small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <a href="/product_movement/{{ p.id }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open Dedicated Movement Page
+                    </a>
+                </div>
             </div>
         </div>
     </div>

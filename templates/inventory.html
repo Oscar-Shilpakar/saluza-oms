@@ -22,10 +22,24 @@
         <h1>Product <span class="gold">Inventory</span></h1>
         <p class="page-header-sub">Manage your catalog, add new stock, and monitor inventory levels.</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="#addProductCard" class="btn btn-primary btn-sm d-md-none">
-            <i class="bi bi-plus-lg me-1"></i>Add Product
-        </a>
+    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+        <!-- CATALOG-WIDE PIECES METRICS BAR -->
+        <div class="catalog-metric-box">
+            <span class="metric-title">Catalog Pieces</span>
+            <div class="d-flex align-items-baseline gap-2">
+                <span class="metric-val text-gold">{{ total_inventory_pieces }}</span>
+                <span class="metric-sub"><strong class="text-success">{{ total_inventory_sold }}</strong> gone out ({{ total_inventory_pct }}%)</span>
+            </div>
+            <span class="metric-foot"><i class="bi bi-box-seam me-1"></i>{{ total_inventory_stock }} units in shelf stock</span>
+        </div>
+        <div class="d-flex flex-column gap-2">
+            <a href="#addProductCard" class="btn btn-primary btn-sm d-md-none">
+                <i class="bi bi-plus-lg me-1"></i>Add Product
+            </a>
+            <a href="/" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
     </div>
 </div>
 
@@ -103,35 +117,57 @@
     <!-- PRODUCT TABLE WITH FILTER & SORT TOOLBAR -->
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                <span>Product Catalog</span>
-                <span class="badge bg-gold" id="productCountBadge">{{ products | length }} items</span>
+            <div class="card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <div class="d-flex align-items-center gap-2">
+                    <span>Product Catalog</span>
+                    <span class="badge bg-gold" id="productCountBadge">{{ filtered_count }} items</span>
+                </div>
+
+                <!-- STOCK STATUS PILLS -->
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                    <button type="button" class="stock-pill-btn {% if not stock_filter or stock_filter == 'all' %}active{% endif %}"
+                            data-stock-filter="all" onclick="setStockFilter('all')">
+                        All ({{ total_products }})
+                    </button>
+                    <button type="button" class="stock-pill-btn {% if stock_filter == 'low' %}active{% endif %}"
+                            data-stock-filter="low" onclick="setStockFilter('low')">
+                        <span class="stock-dot bg-warning"></span> Low Stock ({{ low_stock_count }})
+                    </button>
+                    <button type="button" class="stock-pill-btn {% if stock_filter == 'out' %}active{% endif %}"
+                            data-stock-filter="out" onclick="setStockFilter('out')">
+                        <span class="stock-dot bg-danger"></span> Out of Stock ({{ out_stock_count }})
+                    </button>
+                </div>
             </div>
 
             <!-- FILTER & SORT TOOLBAR -->
-            <div
-                style="padding: 0.85rem 1.25rem; background: var(--surface-2); border-bottom: 1px solid var(--line-soft);">
+            <div style="padding: 0.85rem 1.25rem; background: var(--surface-2); border-bottom: 1px solid var(--line-soft);">
                 <div class="row g-2 align-items-center">
-                    <div class="col-sm-7">
+                    <div class="col-sm-6 col-lg-7">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
                             <input type="text" id="inventorySearch" class="form-control"
-                                placeholder="Search by product name or SKU..." onkeyup="filterAndSortInventory()">
+                                placeholder="Instant search by name or SKU..." value="{{ search_query }}"
+                                oninput="handleSearchInput()">
+                            <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn"
+                                    style="{% if not search_query %}display: none;{% endif %}" onclick="clearSearch()">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="col-sm-5">
-                        <div class="d-flex align-items-center gap-2">
-                            <span
-                                style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
-                            <select id="inventorySort" class="form-select form-select-sm"
-                                onchange="filterAndSortInventory()">
-                                <option value="newest" selected>🆕 Date Added: Newest First</option>
-                                <option value="oldest">📜 Date Added: Oldest First</option>
-                                <option value="name_asc">🔤 Name: A to Z</option>
-                                <option value="name_desc">🔤 Name: Z to A</option>
-                                <option value="price_desc">💰 Price: High to Low</option>
-                                <option value="price_asc">🏷️ Price: Low to High</option>
-                                <option value="stock_asc">📦 Stock: Low to High</option>
+                    <div class="col-sm-6 col-lg-5">
+                        <div class="d-flex align-items-center gap-2 justify-content-sm-end">
+                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Sort:</span>
+                            <select id="inventorySort" class="form-select form-select-sm" onchange="handleSortChange()">
+                                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>🆕 Newest First</option>
+                                <option value="sold_desc" {% if sort_by == 'sold_desc' %}selected{% endif %}>🔥 Most Pieces Gone Out</option>
+                                <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>📜 Oldest First</option>
+                                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>🔤 Name: A to Z</option>
+                                <option value="name_desc" {% if sort_by == 'name_desc' %}selected{% endif %}>🔤 Name: Z to A</option>
+                                <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>💰 Price: High to Low</option>
+                                <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>🏷️ Price: Low to High</option>
+                                <option value="stock_asc" {% if sort_by == 'stock_asc' %}selected{% endif %}>📦 Stock: Low to High</option>
+                                <option value="stock_desc" {% if sort_by == 'stock_desc' %}selected{% endif %}>📦 Stock: High to Low</option>
                             </select>
                         </div>
                     </div>
@@ -140,28 +176,28 @@
 
             <!-- TABLE WITH INTERNAL SCROLL -->
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height: 620px; overflow-y: auto;">
+                <div class="table-responsive" style="max-height: 580px; overflow-y: auto;">
                     <table class="table table-hover mb-0 align-middle">
-                        <thead style="position: sticky; top: 0; z-index: 2;">
+                        <thead style="position: sticky; top: 0; z-index: 2; background: #FFFFFF;">
                             <tr>
-                                <th>Image</th>
+                                <th style="width: 56px;">Image</th>
                                 <th>SKU / Name</th>
-                                <th>Cost</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Actions</th>
+                                <th style="width: 95px;">Cost</th>
+                                <th style="width: 95px;">Price</th>
+                                <th style="width: 155px;">Stock &amp; Outflow</th>
+                                <th style="width: 95px; text-align: center;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="inventoryTableBody">
+                            {% if products %}
                             {% for p in products %}
-                            <tr class="inventory-row" data-id="{{ p.id }}" data-name="{{ p.name }}"
-                                data-sku="{{ p.sku if p.sku else '' }}" data-price="{{ p.price }}"
-                                data-cost="{{ p.cost_price }}" data-stock="{{ p.stock }}">
+                            <tr class="inventory-row" data-id="{{ p.id }}">
                                 <td>
                                     {% if p.image %}
                                     <img src="{{ url_for('static', filename='uploads/' + p.image) }}" width="42"
-                                        height="42"
-                                        style="object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line-soft);">
+                                        height="42" loading="lazy"
+                                        style="object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line-soft);"
+                                        alt="{{ p.name }}">
                                     {% else %}
                                     <span
                                         style="width: 42px; height: 42px; background: var(--surface-2); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>
@@ -171,51 +207,227 @@
                                     <div
                                         style="font-size: 0.68rem; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; font-family: 'Inter';">
                                         {{ p.sku if p.sku else '—' }}</div>
-                                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">{{ p.name }}
-                                    </div>
-                                    <div style="font-size: 0.7rem; color: var(--text-tertiary);">Size: {{ p.size }}
-                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">{{ p.name }}</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-tertiary);">Size: {{ p.size }}</div>
                                 </td>
-                                <td style="color: var(--text-secondary); font-size: 0.82rem;">Rs. {{ p.cost_price }}
-                                </td>
-                                <td
-                                    style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--text);">
-                                    Rs. {{ p.price }}</td>
-                                <td>
-                                    {% if p.stock < 5 %} <span
-                                        style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--danger);">
-                                        {{ p.stock }}</span>
-                                        <span class="badge bg-danger ms-1">Low</span>
-                                        {% else %}
-                                        <span
-                                            style="font-family: 'Oswald'; font-weight: 600; font-size: 0.95rem; color: var(--success);">{{
-                                            p.stock }}</span>
-                                        {% endif %}
+                                <td style="color: var(--text-secondary); font-size: 0.82rem;">Rs. {{ "{:,.2f}".format(p.cost_price) }}</td>
+                                <td style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--text);">
+                                    Rs. {{ "{:,.2f}".format(p.price) }}
                                 </td>
                                 <td>
-                                    <div class="d-flex gap-1">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            {% if p.stock == 0 %}
+                                            <span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--danger);">0</span>
+                                            <span class="badge bg-danger ms-1" style="font-size: 0.62rem;">Out</span>
+                                            {% elif p.stock < 5 %}
+                                            <span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--warning);">{{ p.stock }}</span>
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.62rem;">Low</span>
+                                            {% else %}
+                                            <span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--success);">{{ p.stock }}</span>
+                                            <span style="font-size: 0.68rem; color: var(--text-tertiary);">left</span>
+                                            {% endif %}
+                                        </div>
+                                        <div style="font-size: 0.72rem; font-weight: 600; font-family: 'Inter'; color: var(--gold);">
+                                            {{ p.sold_pieces }} / {{ p.total_pieces }} <span style="font-size: 0.62rem; color: var(--text-tertiary); font-weight: 400;">out</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress my-1" style="height: 4px; background: var(--surface-3); border-radius: 2px;" title="{{ p.sold_pieces }} of {{ p.total_pieces }} pieces gone out ({{ p.pct_gone }}%)">
+                                        <div class="progress-bar" style="width: {{ p.pct_gone }}%; background: linear-gradient(to right, var(--gold-muted), var(--gold));"></div>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between mt-1">
+                                        <span style="font-size: 0.66rem; color: var(--text-tertiary);">{{ p.pct_gone }}% gone</span>
+                                        <button type="button" class="btn btn-xs stock-buyers-pill" onclick="openProductMovementModal({{ p.id }})" title="View who took these pieces">
+                                            <i class="bi bi-people-fill me-1"></i>Who took? ({{ p.sold_pieces }})
+                                        </button>
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="openProductMovementModal({{ p.id }})" title="Inspect Pieces & Buyers" style="padding: 0.22rem 0.45rem;">
+                                            <i class="bi bi-clock-history"></i>
+                                        </button>
                                         <a href="/edit_product/{{ p.id }}" class="btn btn-sm btn-outline-primary"
-                                            title="Edit">
+                                            title="Edit" style="padding: 0.22rem 0.45rem;">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <a href="/delete_product/{{ p.id }}" class="btn btn-sm btn-outline-danger"
                                             onclick="return confirm('Are you sure? This cannot be undone.')"
-                                            title="Delete">
+                                            title="Delete" style="padding: 0.22rem 0.45rem;">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
                                 </td>
                             </tr>
                             {% endfor %}
+                            {% else %}
+                            <tr id="emptyRow">
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+                                    <p class="mb-0">No products found matching your filter.</p>
+                                </td>
+                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- PAGINATION / COUNTS FOOTER -->
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-3" 
+                 id="inventoryPaginationFooter"
+                 style="background: var(--surface-2); border-top: 1px solid var(--line-soft);">
+                <div style="font-size: 0.8rem; color: var(--text-secondary);" id="paginationSummary">
+                    {% if pagination %}
+                    Showing page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> ({{ filtered_count }} products)
+                    {% else %}
+                    Showing all <strong>{{ filtered_count }}</strong> products
+                    {% endif %}
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-1">
+                        <span style="font-size: 0.72rem; color: var(--text-tertiary); text-transform: uppercase;">Per Page:</span>
+                        <select id="inventoryPerPage" class="form-select form-select-sm" style="width: 80px;" onchange="handlePerPageChange()">
+                            <option value="25" {% if per_page == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if per_page == '50' or per_page == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                            <option value="all" {% if per_page == 'all' %}selected{% endif %}>All</option>
+                        </select>
+                    </div>
+
+                    <div id="paginationNav">
+                        {% if pagination and pagination.pages > 1 %}
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <button type="button" class="page-link" onclick="goToPage({{ pagination.prev_num }})" aria-label="Previous">&laquo;</button>
+                            </li>
+                            <li class="page-item active">
+                                <span class="page-link">{{ pagination.page }} / {{ pagination.pages }}</span>
+                            </li>
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <button type="button" class="page-link" onclick="goToPage({{ pagination.next_num }})" aria-label="Next">&raquo;</button>
+                            </li>
+                        </ul>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+.stock-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.55rem;
+    background: transparent;
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.stock-pill-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--gold-muted);
+}
+.stock-pill-btn.active {
+    background: var(--gold-tint);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 600;
+}
+.stock-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.catalog-metric-box {
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-md);
+    padding: 0.45rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 190px;
+}
+.catalog-metric-box .metric-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+}
+.catalog-metric-box .metric-val {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+.catalog-metric-box .metric-sub {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+.catalog-metric-box .metric-foot {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+.stock-buyers-pill {
+    padding: 0.12rem 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 600;
+    background: var(--gold-tint);
+    color: var(--gold);
+    border: 1px solid rgba(161, 122, 31, 0.35);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    line-height: 1.3;
+}
+.stock-buyers-pill:hover {
+    background: var(--gold);
+    color: #FFFFFF;
+}
+.stat-mini-box {
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-sm);
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+}
+.stat-mini-box .lbl {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+}
+.stat-mini-box .val {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+.stat-mini-box .sub {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+}
+</style>
+
 <script>
+    // --- ADD PRODUCT LOGIC (100% PRESERVED) ---
     const costInput = document.getElementById('costPriceInput');
     const marginInput = document.getElementById('profitMarginInput');
     const priceInput = document.getElementById('sellingPriceInput');
@@ -274,56 +486,492 @@
         return true;
     }
 
-    // --- FILTER & SORT LOGIC ---
-    function filterAndSortInventory() {
-        const query = document.getElementById('inventorySearch').value.toLowerCase().trim();
-        const sortValue = document.getElementById('inventorySort').value;
+    // --- INSTANT DYNAMIC SEARCH & FILTER ENGINE ---
+    let currentStockFilter = "{{ stock_filter or 'all' }}";
+    let currentPage = {{ pagination.page if pagination else 1 }};
+    let searchDebounceTimer = null;
+
+    function handleSearchInput() {
+        const query = document.getElementById('inventorySearch').value.trim();
+        const clearBtn = document.getElementById('clearSearchBtn');
+        clearBtn.style.display = query ? '' : 'none';
+        
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            currentPage = 1;
+            fetchInventoryData();
+        }, 150);
+    }
+
+    function clearSearch() {
+        document.getElementById('inventorySearch').value = '';
+        document.getElementById('clearSearchBtn').style.display = 'none';
+        currentPage = 1;
+        fetchInventoryData();
+    }
+
+    function handleSortChange() {
+        currentPage = 1;
+        fetchInventoryData();
+    }
+
+    function handlePerPageChange() {
+        currentPage = 1;
+        fetchInventoryData();
+    }
+
+    function setStockFilter(filter) {
+        currentStockFilter = filter;
+        document.querySelectorAll('.stock-pill-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-stock-filter') === filter);
+        });
+        currentPage = 1;
+        fetchInventoryData();
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        fetchInventoryData();
+    }
+
+    function fetchInventoryData() {
+        const search = document.getElementById('inventorySearch').value.trim();
+        const sort = document.getElementById('inventorySort').value;
+        const perPage = document.getElementById('inventoryPerPage').value;
+
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: perPage,
+            search: search,
+            sort: sort,
+            stock_filter: currentStockFilter
+        });
+
+        fetch(`/api/inventory?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                renderTable(data.products);
+                updatePaginationUI(data.pagination);
+                document.getElementById('productCountBadge').innerText = data.pagination.total + ' items';
+            })
+            .catch(err => {
+                console.error("Failed to load inventory:", err);
+            });
+    }
+
+    function renderTable(products) {
         const tbody = document.getElementById('inventoryTableBody');
-        const rows = Array.from(tbody.querySelectorAll('.inventory-row'));
+        if (!products || !products.length) {
+            tbody.innerHTML = `
+                <tr id="emptyRow">
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+                        <p class="mb-0">No products found matching your filter.</p>
+                    </td>
+                </tr>`;
+            return;
+        }
 
-        // 1. Filter rows
-        let visibleCount = 0;
-        rows.forEach(row => {
-            const name = row.getAttribute('data-name').toLowerCase();
-            const sku = row.getAttribute('data-sku').toLowerCase();
-            const matches = name.includes(query) || sku.includes(query);
-            row.style.display = matches ? '' : 'none';
-            if (matches) visibleCount++;
-        });
+        tbody.innerHTML = products.map(p => {
+            const imgHtml = p.image
+                ? `<img src="/static/uploads/${p.image}" width="42" height="42" loading="lazy" style="object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line-soft);" alt="${escapeHtml(p.name)}">`
+                : `<span style="width: 42px; height: 42px; background: var(--surface-2); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid var(--line-soft);">👗</span>`;
 
-        // Update badge count
-        document.getElementById('productCountBadge').innerText = visibleCount + ' items';
-
-        // 2. Sort rows
-        rows.sort((a, b) => {
-            const idA = parseInt(a.getAttribute('data-id'));
-            const idB = parseInt(b.getAttribute('data-id'));
-            const nameA = a.getAttribute('data-name').toLowerCase();
-            const nameB = b.getAttribute('data-name').toLowerCase();
-            const priceA = parseFloat(a.getAttribute('data-price'));
-            const priceB = parseFloat(b.getAttribute('data-price'));
-            const stockA = parseInt(a.getAttribute('data-stock'));
-            const stockB = parseInt(b.getAttribute('data-stock'));
-
-            switch (sortValue) {
-                case 'newest': return idB - idA; // Highest ID = newest
-                case 'oldest': return idA - idB; // Lowest ID = oldest
-                case 'name_asc': return nameA.localeCompare(nameB);
-                case 'name_desc': return nameB.localeCompare(nameA);
-                case 'price_desc': return priceB - priceA;
-                case 'price_asc': return priceA - priceB;
-                case 'stock_asc': return stockA - stockB;
-                default: return idB - idA;
+            let stockBadge = '';
+            if (p.stock === 0) {
+                stockBadge = `<span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--danger);">0</span> <span class="badge bg-danger ms-1" style="font-size: 0.62rem;">Out</span>`;
+            } else if (p.stock < 5) {
+                stockBadge = `<span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--warning);">${p.stock}</span> <span class="badge bg-warning text-dark ms-1" style="font-size: 0.62rem;">Low</span>`;
+            } else {
+                stockBadge = `<span style="font-family: 'Oswald'; font-weight: 600; font-size: 0.92rem; color: var(--success);">${p.stock}</span> <span style="font-size: 0.68rem; color: var(--text-tertiary);">left</span>`;
             }
-        });
 
-        // Re-append sorted rows
-        rows.forEach(row => tbody.appendChild(row));
+            const soldQty = Number(p.sold_pieces || 0);
+            const totPieces = Number(p.total_pieces || (p.stock + soldQty));
+            const pctGone = Number(p.pct_gone || (totPieces > 0 ? ((soldQty / totPieces) * 100).toFixed(1) : 0));
+
+            return `
+            <tr class="inventory-row" data-id="${p.id}">
+                <td>${imgHtml}</td>
+                <td>
+                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; font-family: 'Inter';">${escapeHtml(p.sku || '—')}</div>
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">${escapeHtml(p.name)}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-tertiary);">Size: ${escapeHtml(p.size)}</div>
+                </td>
+                <td style="color: var(--text-secondary); font-size: 0.82rem;">Rs. ${formatNumber(p.cost_price)}</td>
+                <td style="font-family: 'Oswald'; font-size: 0.9rem; font-weight: 600; color: var(--text);">Rs. ${formatNumber(p.price)}</td>
+                <td>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>${stockBadge}</div>
+                        <div style="font-size: 0.72rem; font-weight: 600; font-family: 'Inter'; color: var(--gold);">
+                            ${soldQty} / ${totPieces} <span style="font-size: 0.62rem; color: var(--text-tertiary); font-weight: 400;">out</span>
+                        </div>
+                    </div>
+                    <div class="progress my-1" style="height: 4px; background: var(--surface-3); border-radius: 2px;" title="${soldQty} of ${totPieces} pieces gone out (${pctGone}%)">
+                        <div class="progress-bar" style="width: ${pctGone}%; background: linear-gradient(to right, var(--gold-muted), var(--gold));"></div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between mt-1">
+                        <span style="font-size: 0.66rem; color: var(--text-tertiary);">${pctGone}% gone</span>
+                        <button type="button" class="btn btn-xs stock-buyers-pill" onclick="openProductMovementModal(${p.id})" title="View who took these pieces">
+                            <i class="bi bi-people-fill me-1"></i>Who took? (${soldQty})
+                        </button>
+                    </div>
+                </td>
+                <td style="text-align: center;">
+                    <div class="d-flex gap-1 justify-content-center">
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="openProductMovementModal(${p.id})" title="Inspect Pieces & Buyers" style="padding: 0.22rem 0.45rem;">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
+                        <a href="/edit_product/${p.id}" class="btn btn-sm btn-outline-primary" title="Edit" style="padding: 0.22rem 0.45rem;">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="/delete_product/${p.id}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure? This cannot be undone.')" title="Delete" style="padding: 0.22rem 0.45rem;">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updatePaginationUI(p) {
+        const summary = document.getElementById('paginationSummary');
+        const nav = document.getElementById('paginationNav');
+
+        if (!p || p.per_page === 'all' || p.pages <= 1) {
+            summary.innerHTML = `Showing all <strong>${p ? p.total : 0}</strong> products`;
+            nav.innerHTML = '';
+            return;
+        }
+
+        summary.innerHTML = `Showing page <strong>${p.page}</strong> of <strong>${p.pages}</strong> (${p.total} products)`;
+
+        nav.innerHTML = `
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item ${!p.has_prev ? 'disabled' : ''}">
+                    <button type="button" class="page-link" onclick="goToPage(${p.page - 1})" aria-label="Previous">&laquo;</button>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link">${p.page} / ${p.pages}</span>
+                </li>
+                <li class="page-item ${!p.has_next ? 'disabled' : ''}">
+                    <button type="button" class="page-link" onclick="goToPage(${p.page + 1})" aria-label="Next">&raquo;</button>
+                </li>
+            </ul>`;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatNumber(num) {
+        return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
         applyPreset();
-        filterAndSortInventory();
     });
+
+    // --- PRODUCT MOVEMENT & BUYERS MODAL ENGINE ---
+    let currentModalBuyers = [];
+
+    function openProductMovementModal(productId) {
+        const modalEl = document.getElementById('productMovementModal');
+        let modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (!modalInstance) {
+            modalInstance = new bootstrap.Modal(modalEl);
+        }
+        
+        // Show loading state
+        document.getElementById('modalProductName').innerText = 'Loading...';
+        document.getElementById('modalProductSku').innerText = '—';
+        document.getElementById('modalProductSize').innerText = '—';
+        document.getElementById('modalTotalPieces').innerText = '…';
+        document.getElementById('modalSoldPieces').innerText = '…';
+        document.getElementById('modalStockPieces').innerText = '…';
+        document.getElementById('modalRevenue').innerText = '…';
+        document.getElementById('modalProgressBar').style.width = '0%';
+        document.getElementById('modalBuyersTableBody').innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <div class="spinner-border spinner-border-sm text-gold me-2" role="status"></div>
+                    Loading piece movement and buyer records...
+                </td>
+            </tr>`;
+        document.getElementById('modalSiblingContainer').classList.add('d-none');
+        document.getElementById('modalBuyerSearch').value = '';
+
+        modalInstance.show();
+
+        fetch(`/api/product_movement/${productId}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Product not found');
+                return res.json();
+            })
+            .then(data => {
+                populateProductMovementModal(data);
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('modalBuyersTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Failed to load product movement data.
+                        </td>
+                    </tr>`;
+            });
+    }
+
+    function populateProductMovementModal(data) {
+        const p = data.product;
+        currentModalBuyers = data.buyers || [];
+
+        document.getElementById('modalProductName').innerText = p.name;
+        document.getElementById('modalProductSku').innerText = p.sku || 'No SKU';
+        document.getElementById('modalProductSize').innerText = 'Size: ' + p.size;
+        
+        const thumbEl = document.getElementById('modalProductThumb');
+        if (p.image) {
+            thumbEl.innerHTML = `<img src="/static/uploads/${p.image}" style="width: 100%; height: 100%; object-fit: cover;" alt="${escapeHtml(p.name)}">`;
+        } else {
+            thumbEl.innerHTML = `<span style="font-size: 1.4rem;">👗</span>`;
+        }
+
+        document.getElementById('modalTotalPieces').innerText = p.total_pieces;
+        document.getElementById('modalSoldPieces').innerText = p.sold_pieces;
+        document.getElementById('modalPctGone').innerText = p.pct_gone + '% of total';
+        document.getElementById('modalStockPieces').innerText = p.stock;
+        document.getElementById('modalRevenue').innerText = 'Rs. ' + formatNumber(p.total_revenue);
+        document.getElementById('modalOrderCount').innerText = `${data.total_orders_count} orders (${data.unique_buyers_count} buyers)`;
+
+        document.getElementById('modalOutflowRatioText').innerText = `${p.sold_pieces} of ${p.total_pieces} Pieces Gone Out (${p.pct_gone}%)`;
+        document.getElementById('modalProgressBar').style.width = p.pct_gone + '%';
+        document.getElementById('modalProgressGoneLabel').innerHTML = `<i class="bi bi-arrow-up-right me-1 text-danger"></i>${p.sold_pieces} Pieces Gone Out`;
+        document.getElementById('modalProgressStockLabel').innerHTML = `<i class="bi bi-box me-1 text-success"></i>${p.stock} Pieces In Stock`;
+
+        document.getElementById('modalFullViewLink').href = `/product_movement/${p.id}`;
+
+        // Sibling sizes if multiple exist
+        const sibContainer = document.getElementById('modalSiblingContainer');
+        const sibPills = document.getElementById('modalSiblingPills');
+        if (data.siblings && data.siblings.length > 1) {
+            sibContainer.classList.remove('d-none');
+            sibPills.innerHTML = data.siblings.map(s => `
+                <button type="button" class="btn btn-xs ${s.is_current ? 'btn-primary' : 'btn-outline-secondary'}" 
+                        style="font-size: 0.68rem; padding: 0.15rem 0.45rem;"
+                        onclick="openProductMovementModal(${s.id})">
+                    ${escapeHtml(s.size)} (${s.sold_pieces}/${s.total_pieces})
+                </button>
+            `).join('');
+        } else {
+            sibContainer.classList.add('d-none');
+        }
+
+        renderModalBuyersTable(currentModalBuyers);
+    }
+
+    function renderModalBuyersTable(buyers) {
+        const tbody = document.getElementById('modalBuyersTableBody');
+        document.getElementById('modalBuyerCountBadge').innerText = `${buyers.length} ${buyers.length === 1 ? 'record' : 'records'}`;
+
+        if (!buyers || !buyers.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox" style="font-size: 1.6rem; display: block; margin-bottom: 0.3rem; opacity: 0.5;"></i>
+                        No buyers found. No pieces have gone out yet or no orders match your search.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = buyers.map(b => {
+            let statusBadge = '<span class="badge bg-warning-tint text-warning" style="font-size:0.62rem;">Pending</span>';
+            if (b.status === 'Delivered') {
+                statusBadge = '<span class="badge bg-success-tint text-success" style="font-size:0.62rem;">Delivered</span>';
+            } else if (b.status === 'Shipped') {
+                statusBadge = '<span class="badge bg-info-tint text-info" style="font-size:0.62rem;">Shipped</span>';
+            } else if (b.status === 'Returned') {
+                statusBadge = '<span class="badge bg-danger-tint text-danger" style="font-size:0.62rem;">Returned</span>';
+            }
+
+            return `
+            <tr>
+                <td>
+                    <div style="font-weight: 600; font-size: 0.82rem; color: var(--text);">${escapeHtml(b.customer_name)}</div>
+                    ${b.address ? `<div style="font-size: 0.68rem; color: var(--text-tertiary); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(b.address)}"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(b.address)}</div>` : ''}
+                </td>
+                <td style="font-size: 0.75rem;">
+                    ${b.phone ? `<a href="tel:${escapeHtml(b.phone)}" class="text-decoration-none" style="color: var(--text-secondary);"><i class="bi bi-telephone me-1 text-gold"></i>${escapeHtml(b.phone)}</a>` : '<span class="text-muted">—</span>'}
+                </td>
+                <td style="text-align: center;">
+                    <span class="badge bg-gold-tint text-gold font-monospace" style="font-size: 0.78rem; font-weight: 700; padding: 0.22rem 0.55rem;">
+                        ${b.quantity} ${b.quantity === 1 ? 'pc' : 'pcs'}
+                    </span>
+                </td>
+                <td>
+                    <a href="/edit_order/${b.order_id}" class="text-decoration-none" style="font-family: 'Oswald'; font-weight: 600; color: var(--gold); letter-spacing: 0.05em;" title="View Order #${b.order_id}">
+                        #${b.order_id} <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.65rem;"></i>
+                    </a>
+                </td>
+                <td style="font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap;">
+                    ${escapeHtml(b.date_formatted || b.date)}
+                </td>
+                <td>${statusBadge}</td>
+                <td style="font-family: 'Oswald'; font-weight: 600; font-size: 0.82rem; color: var(--text); text-align: right; white-space: nowrap;">
+                    Rs. ${formatNumber(b.subtotal)}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function filterModalBuyers() {
+        const query = (document.getElementById('modalBuyerSearch').value || '').toLowerCase().trim();
+        if (!query) {
+            renderModalBuyersTable(currentModalBuyers);
+            return;
+        }
+
+        const filtered = currentModalBuyers.filter(b => {
+            const name = (b.customer_name || '').toLowerCase();
+            const phone = (b.phone || '').toLowerCase();
+            const orderId = String(b.order_id || '');
+            const address = (b.address || '').toLowerCase();
+            const status = (b.status || '').toLowerCase();
+            return name.includes(query) || phone.includes(query) || orderId.includes(query) || address.includes(query) || status.includes(query);
+        });
+
+        renderModalBuyersTable(filtered);
+    }
 </script>
+
+<!-- ══════════════════════════════════════════
+     PRODUCT PIECES & BUYERS MODAL
+══════════════════════════════════════════ -->
+<div class="modal fade" id="productMovementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg);">
+            <div class="modal-header d-flex align-items-center justify-content-between" style="background: var(--surface-2); border-bottom: 1px solid var(--line-soft); padding: 1.1rem 1.5rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div id="modalProductThumb" style="width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; background: #fff; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span style="font-size: 1.4rem;">👗</span>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-gold-tint text-gold font-monospace" id="modalProductSku" style="font-size: 0.68rem; letter-spacing: 0.08em;">SKU</span>
+                            <span class="badge bg-secondary" id="modalProductSize" style="font-size: 0.68rem;">Size</span>
+                        </div>
+                        <h5 class="modal-title mb-0" id="modalProductName" style="font-size: 1.15rem; font-weight: 700; color: var(--text);">Product Name</h5>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-3 p-md-4">
+                <!-- SIBLING SIZES SELECTOR (If stock batch has multiple sizes) -->
+                <div id="modalSiblingContainer" class="mb-3 d-none">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 p-2 rounded" style="background: var(--surface-2); border: 1px solid var(--line-soft);">
+                        <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-secondary);"><i class="bi bi-diagram-3 me-1 text-gold"></i>Sizes in this Stock Batch:</span>
+                        <div class="d-flex gap-1 flex-wrap" id="modalSiblingPills"></div>
+                    </div>
+                </div>
+
+                <!-- 4 KPI STATS CARDS -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="stat-mini-box">
+                            <span class="lbl">Total Pieces</span>
+                            <span class="val text-gold" id="modalTotalPieces">0</span>
+                            <span class="sub">Stock + Gone Out</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-mini-box">
+                            <span class="lbl">Pieces Gone Out</span>
+                            <span class="val text-danger" id="modalSoldPieces">0</span>
+                            <span class="sub" id="modalPctGone">0% of total</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-mini-box">
+                            <span class="lbl">Remaining Stock</span>
+                            <span class="val text-success" id="modalStockPieces">0</span>
+                            <span class="sub">On shelf now</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-mini-box">
+                            <span class="lbl">Revenue Generated</span>
+                            <span class="val" id="modalRevenue">Rs. 0</span>
+                            <span class="sub" id="modalOrderCount">0 orders</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VISUAL OUTFLOW PROGRESS BAR -->
+                <div class="mb-4 p-3 rounded" style="background: var(--surface-2); border: 1px solid var(--line-soft);">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.78rem;">
+                        <span style="font-weight: 600; color: var(--text);"><i class="bi bi-pie-chart-fill me-1 text-gold"></i>Pieces Outflow Status</span>
+                        <span class="text-gold fw-bold" id="modalOutflowRatioText">0 / 0 Pieces Gone Out</span>
+                    </div>
+                    <div class="progress" style="height: 10px; border-radius: 5px; background: var(--surface-3);">
+                        <div id="modalProgressBar" class="progress-bar" style="width: 0%; background: linear-gradient(to right, var(--gold-muted), var(--gold)); transition: width 0.4s ease;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 0.7rem;">
+                        <span id="modalProgressGoneLabel"><i class="bi bi-arrow-up-right me-1 text-danger"></i>0 Gone</span>
+                        <span id="modalProgressStockLabel"><i class="bi bi-box me-1 text-success"></i>0 In Stock</span>
+                    </div>
+                </div>
+
+                <!-- BUYERS / WHO TOOK THOSE PIECES -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="mb-0 fw-bold" style="font-size: 0.95rem; color: var(--text);">
+                            <i class="bi bi-people-fill me-1 text-gold"></i>Who Took Those Pieces
+                        </h6>
+                        <span class="badge bg-gold-tint text-gold" id="modalBuyerCountBadge">0 buyers</span>
+                    </div>
+                    <!-- Live Search for Buyers in Modal -->
+                    <div class="input-group input-group-sm" style="max-width: 240px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="modalBuyerSearch" class="form-control" placeholder="Search customer, phone, #..." oninput="filterModalBuyers()">
+                    </div>
+                </div>
+
+                <!-- BUYERS TABLE -->
+                <div class="table-responsive rounded border" style="max-height: 280px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead style="position: sticky; top: 0; background: #FFFFFF; z-index: 1;">
+                            <tr>
+                                <th>Customer</th>
+                                <th style="width: 110px;">Contact</th>
+                                <th style="width: 90px; text-align: center;">Pieces Taken</th>
+                                <th style="width: 90px;">Order #</th>
+                                <th style="width: 95px;">Date</th>
+                                <th style="width: 85px;">Status</th>
+                                <th style="width: 90px; text-align: right;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalBuyersTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer d-flex justify-content-between" style="background: var(--surface-2); border-top: 1px solid var(--line-soft);">
+                <a id="modalFullViewLink" href="#" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Open Dedicated History Page
+                </a>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
